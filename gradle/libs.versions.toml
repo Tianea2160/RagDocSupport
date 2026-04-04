@@ -8,6 +8,8 @@ ktlint-core = "1.8.0"
 qdrant = "1.17.0"
 jsoup = "1.22.1"
 webmagic = "1.0.3"
+mockk = "1.14.9"
+kotest = "6.0.7"
 
 [libraries]
 spring-boot-starter-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
@@ -24,6 +26,8 @@ jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 webmagic-core = { module = "us.codecraft:webmagic-core", version.ref = "webmagic" }
 webmagic-extension = { module = "us.codecraft:webmagic-extension", version.ref = "webmagic" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

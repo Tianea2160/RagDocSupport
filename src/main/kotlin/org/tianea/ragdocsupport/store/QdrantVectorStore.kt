@@ -1,7 +1,5 @@
 package org.tianea.ragdocsupport.store
 
-import io.qdrant.client.ConditionFactory.filter
-import io.qdrant.client.ConditionFactory.matchKeyword
 import io.qdrant.client.PointIdFactory.id
 import io.qdrant.client.QdrantClient
 import io.qdrant.client.ValueFactory.value
@@ -11,20 +9,17 @@ import io.qdrant.client.grpc.Collections.Distance
 import io.qdrant.client.grpc.Collections.VectorParams
 import io.qdrant.client.grpc.Common.Filter
 import io.qdrant.client.grpc.Common.PointId
+import io.qdrant.client.grpc.Points.PayloadIncludeSelector
 import io.qdrant.client.grpc.Points.PointStruct
-import io.qdrant.client.grpc.Points.ScoredPoint
 import io.qdrant.client.grpc.Points.ScrollPoints
 import io.qdrant.client.grpc.Points.SearchPoints
+import io.qdrant.client.grpc.Points.WithPayloadSelector
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.tianea.ragdocsupport.config.QdrantProperties
 import org.tianea.ragdocsupport.core.model.DocChunk
-import org.tianea.ragdocsupport.core.model.DocMetadata
-import org.tianea.ragdocsupport.core.model.DocType
 import org.tianea.ragdocsupport.core.port.LibraryIndexInfo
 import org.tianea.ragdocsupport.core.port.VectorStore
-import java.time.LocalDate
-import java.util.UUID
 
 @Component
 class QdrantVectorStore(
@@ -57,12 +52,13 @@ class QdrantVectorStore(
         if (chunks.isEmpty()) return
         val points =
             chunks.map { chunk ->
-                val embedding = chunk.embedding ?: throw IllegalArgumentException("Embedding is required for upsert")
+                val embedding = chunk.embedding
+                    ?: throw IllegalArgumentException("Embedding is required for upsert")
                 PointStruct
                     .newBuilder()
                     .setId(id(chunk.id))
                     .setVectors(vectors(embedding.toList()))
-                    .putAllPayload(chunk.metadata.toPayload(chunk.text))
+                    .putAllPayload(DocChunkPayloadMapper.toPayload(chunk.metadata, chunk.text))
                     .build()
             }
 
@@ -77,50 +73,20 @@ class QdrantVectorStore(
         library: String?,
         version: String?,
         limit: Int,
-    ): List<DocChunk> {
-        val filterBuilder = Filter.newBuilder()
-        if (library != null) {
-            filterBuilder.addMust(matchKeyword("library", library))
-        }
-        if (version != null) {
-            filterBuilder.addMust(matchKeyword("version", version))
-        }
-
-        val results =
-            client
-                .searchAsync(
-                    SearchPoints
-                        .newBuilder()
-                        .setCollectionName(properties.collectionName)
-                        .addAllVector(query.toList())
-                        .setFilter(filterBuilder.build())
-                        .setLimit(limit.toLong())
-                        .setWithPayload(enable(true))
-                        .build(),
-                ).get()
-
-        return results.map { it.toDocChunk() }
-    }
+    ): List<DocChunk> = executeSearch(query, QdrantFilterBuilder.searchFilter(library, version), limit)
 
     override fun searchByVersions(
         query: FloatArray,
         library: String,
         versions: List<String>,
         limit: Int,
+    ): List<DocChunk> = executeSearch(query, QdrantFilterBuilder.multiVersionFilter(library, versions), limit)
+
+    private fun executeSearch(
+        query: FloatArray,
+        filter: Filter,
+        limit: Int,
     ): List<DocChunk> {
-        val versionFilter =
-            Filter
-                .newBuilder()
-                .addAllShould(versions.map { matchKeyword("version", it) })
-                .build()
-
-        val combinedFilter =
-            Filter
-                .newBuilder()
-                .addMust(matchKeyword("library", library))
-                .addMust(filter(versionFilter))
-                .build()
-
         val results =
             client
                 .searchAsync(
@@ -128,27 +94,24 @@ class QdrantVectorStore(
                         .newBuilder()
                         .setCollectionName(properties.collectionName)
                         .addAllVector(query.toList())
-                        .setFilter(combinedFilter)
+                        .setFilter(filter)
                         .setLimit(limit.toLong())
                         .setWithPayload(enable(true))
                         .build(),
                 ).get()
 
-        return results.map { it.toDocChunk() }
+        return results.map { DocChunkPayloadMapper.fromScoredPoint(it) }
     }
 
     override fun deleteByLibraryAndVersion(
         library: String,
         version: String,
     ) {
-        val f =
-            Filter
-                .newBuilder()
-                .addMust(matchKeyword("library", library))
-                .addMust(matchKeyword("version", version))
-                .build()
-
-        client.deleteAsync(properties.collectionName, f).get()
+        client
+            .deleteAsync(
+                properties.collectionName,
+                QdrantFilterBuilder.libraryVersionFilter(library, version),
+            ).get()
         log.info("Deleted chunks for $library:$version")
     }
 
@@ -157,18 +120,11 @@ class QdrantVectorStore(
         version: String,
         latest: Boolean,
     ) {
-        val f =
-            Filter
-                .newBuilder()
-                .addMust(matchKeyword("library", library))
-                .addMust(matchKeyword("version", version))
-                .build()
-
         client
             .setPayloadAsync(
                 properties.collectionName,
-                mapOf("latest" to value(latest)),
-                f,
+                mapOf(DocChunkPayloadMapper.FIELD_LATEST to value(latest)),
+                QdrantFilterBuilder.libraryVersionFilter(library, version),
                 true,
                 null,
                 null,
@@ -178,6 +134,18 @@ class QdrantVectorStore(
     override fun listIndexedLibraries(): List<LibraryIndexInfo> {
         val infoMap = mutableMapOf<String, MutableMap<String, LibraryIndexInfo>>()
 
+        val payloadSelector = WithPayloadSelector.newBuilder()
+            .setInclude(
+                PayloadIncludeSelector.newBuilder()
+                    .addAllFields(
+                        listOf(
+                            DocChunkPayloadMapper.FIELD_LIBRARY,
+                            DocChunkPayloadMapper.FIELD_VERSION,
+                            DocChunkPayloadMapper.FIELD_LATEST,
+                        ),
+                    ),
+            ).build()
+
         var nextOffset: PointId? = null
         do {
             val scrollBuilder =
@@ -185,7 +153,7 @@ class QdrantVectorStore(
                     .newBuilder()
                     .setCollectionName(properties.collectionName)
                     .setLimit(100)
-                    .setWithPayload(enable(true))
+                    .setWithPayload(payloadSelector)
 
             if (nextOffset != null) {
                 scrollBuilder.offset = nextOffset
@@ -195,9 +163,9 @@ class QdrantVectorStore(
 
             for (point in result.resultList) {
                 val payload = point.payloadMap
-                val lib = payload["library"]?.stringValue ?: continue
-                val ver = payload["version"]?.stringValue ?: continue
-                val isLatest = payload["latest"]?.boolValue ?: false
+                val lib = payload[DocChunkPayloadMapper.FIELD_LIBRARY]?.stringValue ?: continue
+                val ver = payload[DocChunkPayloadMapper.FIELD_VERSION]?.stringValue ?: continue
+                val isLatest = payload[DocChunkPayloadMapper.FIELD_LATEST]?.boolValue ?: false
 
                 val libMap = infoMap.getOrPut(lib) { mutableMapOf() }
                 val existing = libMap[ver]
@@ -215,36 +183,4 @@ class QdrantVectorStore(
 
         return infoMap.values.flatMap { it.values }
     }
-
-    private fun DocMetadata.toPayload(text: String): Map<String, io.qdrant.client.grpc.JsonWithInt.Value> = mapOf(
-        "library" to value(library),
-        "version" to value(version),
-        "doc_type" to value(docType.name.lowercase()),
-        "section" to value(section),
-        "section_path" to value(sectionPath),
-        "source_url" to value(sourceUrl),
-        "indexed_at" to value(indexedAt.toString()),
-        "latest" to value(latest),
-        "text" to value(text),
-    )
-
-    private fun ScoredPoint.toDocChunk(): DocChunk = DocChunk(
-        id = UUID.fromString(id.uuid),
-        text = payloadMap["text"]?.stringValue ?: "",
-        metadata =
-        DocMetadata(
-            library = payloadMap["library"]?.stringValue ?: "",
-            version = payloadMap["version"]?.stringValue ?: "",
-            docType =
-            runCatching { DocType.valueOf((payloadMap["doc_type"]?.stringValue ?: "reference").uppercase()) }
-                .getOrDefault(DocType.REFERENCE),
-            section = payloadMap["section"]?.stringValue ?: "",
-            sectionPath = payloadMap["section_path"]?.stringValue ?: "",
-            sourceUrl = payloadMap["source_url"]?.stringValue ?: "",
-            indexedAt =
-            runCatching { LocalDate.parse(payloadMap["indexed_at"]?.stringValue ?: "") }
-                .getOrDefault(LocalDate.now()),
-            latest = payloadMap["latest"]?.boolValue ?: false,
-        ),
-    )
 }

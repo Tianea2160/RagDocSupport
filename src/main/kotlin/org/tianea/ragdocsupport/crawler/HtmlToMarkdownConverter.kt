@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component
 @Component
 class HtmlToMarkdownConverter {
     fun convert(document: Document): String {
-        // Try to find main content area
         val content =
             document.selectFirst("main, article, .content, #content, .documentation, #main-content")
                 ?: document.body()
@@ -22,120 +21,65 @@ class HtmlToMarkdownConverter {
         for (node in element.childNodes()) {
             when (node) {
                 is TextNode -> sb.append(node.text())
-
-                is Element -> {
-                    when (node.tagName().lowercase()) {
-                        "h1" ->
-                            sb
-                                .appendLine()
-                                .append("# ${node.text()}")
-                                .appendLine()
-                                .appendLine()
-
-                        "h2" ->
-                            sb
-                                .appendLine()
-                                .append("## ${node.text()}")
-                                .appendLine()
-                                .appendLine()
-
-                        "h3" ->
-                            sb
-                                .appendLine()
-                                .append("### ${node.text()}")
-                                .appendLine()
-                                .appendLine()
-
-                        "h4" ->
-                            sb
-                                .appendLine()
-                                .append("#### ${node.text()}")
-                                .appendLine()
-                                .appendLine()
-
-                        "h5" ->
-                            sb
-                                .appendLine()
-                                .append("##### ${node.text()}")
-                                .appendLine()
-                                .appendLine()
-
-                        "h6" ->
-                            sb
-                                .appendLine()
-                                .append("###### ${node.text()}")
-                                .appendLine()
-                                .appendLine()
-
-                        "p" -> sb.append(convertElement(node)).appendLine().appendLine()
-
-                        "pre" -> {
-                            val code = node.selectFirst("code")?.text() ?: node.text()
-                            val lang =
-                                node
-                                    .selectFirst("code")
-                                    ?.className()
-                                    ?.replace("language-", "")
-                                    ?.replace("highlight", "")
-                                    ?.trim() ?: ""
-                            sb.appendLine("```$lang")
-                            sb.appendLine(code)
-                            sb.appendLine("```")
-                            sb.appendLine()
-                        }
-
-                        "code" -> sb.append("`${node.text()}`")
-
-                        "strong", "b" -> sb.append("**${node.text()}**")
-
-                        "em", "i" -> sb.append("*${node.text()}*")
-
-                        "a" -> {
-                            val href = node.attr("href")
-                            val text = node.text()
-                            if (href.isNotBlank() && text.isNotBlank()) {
-                                sb.append("[$text]($href)")
-                            } else {
-                                sb.append(text)
-                            }
-                        }
-
-                        "ul" -> {
-                            for (li in node.children()) {
-                                sb.append("- ${li.text()}").appendLine()
-                            }
-                            sb.appendLine()
-                        }
-
-                        "ol" -> {
-                            node.children().forEachIndexed { idx, li ->
-                                sb.append("${idx + 1}. ${li.text()}").appendLine()
-                            }
-                            sb.appendLine()
-                        }
-
-                        "table" -> sb.append(convertTable(node)).appendLine()
-
-                        "br" -> sb.appendLine()
-
-                        "div", "section", "span" -> sb.append(convertElement(node))
-
-                        "nav", "footer", "header", "script", "style" -> { /* skip */ }
-
-                        else -> sb.append(convertElement(node))
-                    }
-                }
+                is Element -> sb.append(convertTag(node))
             }
         }
 
         return sb.toString()
     }
 
+    private fun convertTag(element: Element): String = when (element.tagName().lowercase()) {
+        "h1", "h2", "h3", "h4", "h5", "h6" -> convertHeader(element)
+        "p" -> convertElement(element) + "\n\n"
+        "pre" -> convertCodeBlock(element)
+        "code" -> "`${element.text()}`"
+        "strong", "b" -> "**${element.text()}**"
+        "em", "i" -> "*${element.text()}*"
+        "a" -> convertLink(element)
+        "ul" -> convertUnorderedList(element)
+        "ol" -> convertOrderedList(element)
+        "table" -> convertTable(element) + "\n"
+        "br" -> "\n"
+        "div", "section", "span" -> convertElement(element)
+        "nav", "footer", "header", "script", "style" -> ""
+        else -> convertElement(element)
+    }
+
+    private fun convertHeader(element: Element): String {
+        val level = element.tagName().removePrefix("h").toInt()
+        val prefix = "#".repeat(level)
+        return "\n$prefix ${element.text()}\n\n"
+    }
+
+    private fun convertCodeBlock(element: Element): String {
+        val codeElement = element.selectFirst("code")
+        val code = codeElement?.text() ?: element.text()
+        val lang =
+            codeElement
+                ?.className()
+                ?.replace("language-", "")
+                ?.replace("highlight", "")
+                ?.trim() ?: ""
+        return "```$lang\n$code\n```\n\n"
+    }
+
+    private fun convertLink(element: Element): String {
+        val href = element.attr("href")
+        val text = element.text()
+        return if (href.isNotBlank() && text.isNotBlank()) "[$text]($href)" else text
+    }
+
+    private fun convertUnorderedList(element: Element): String = element.children().joinToString("") { "- ${it.text()}\n" } + "\n"
+
+    private fun convertOrderedList(element: Element): String = element.children().mapIndexed { idx, li ->
+        "${idx + 1}. ${li.text()}\n"
+    }.joinToString("") + "\n"
+
     private fun convertTable(table: Element): String {
-        val sb = StringBuilder()
         val rows = table.select("tr")
         if (rows.isEmpty()) return ""
 
+        val sb = StringBuilder()
         for ((idx, row) in rows.withIndex()) {
             val cells = row.select("th, td")
             sb.append("| ${cells.joinToString(" | ") { it.text() }} |").appendLine()

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
     alias(libs.plugins.ktlint)
+    `java-test-fixtures`
 }
 
 ktlint {
@@ -50,8 +51,13 @@ dependencies {
     // YAML parsing for doc-sources.yml
     implementation(libs.jackson.dataformat.yaml)
 
+    testFixturesImplementation(libs.kotlin.reflect)
+
+    testImplementation(testFixtures(project))
     testImplementation(libs.spring.boot.starter.webmvc.test)
     testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotest.assertions.core)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 

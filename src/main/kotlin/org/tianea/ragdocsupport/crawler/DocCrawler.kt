@@ -5,8 +5,6 @@ import org.jsoup.nodes.Document
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
-private const val TIMEOUT_MS = 30_000
-
 @Component
 class DocCrawler {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -16,7 +14,7 @@ class DocCrawler {
         val document =
             Jsoup
                 .connect(url)
-                .timeout(TIMEOUT_MS)
+                .timeout(CrawlerConstants.TIMEOUT_MS)
                 .followRedirects(true)
                 .get()
 
