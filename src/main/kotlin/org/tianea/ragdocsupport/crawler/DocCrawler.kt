@@ -4,30 +4,27 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import org.springframework.web.client.RestClient
+
+private const val TIMEOUT_MS = 30_000
 
 @Component
-class DocCrawler(
-    private val restClient: RestClient,
-) {
+class DocCrawler {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    fun crawl(url: String): Document? {
-        return try {
-            log.info("Crawling: $url")
-            val html =
-                restClient
-                    .get()
-                    .uri(url)
-                    .retrieve()
-                    .body(String::class.java)
-                    ?: return null
+    fun crawl(url: String): Document? = try {
+        log.info("Crawling: $url")
+        val document =
+            Jsoup
+                .connect(url)
+                .timeout(TIMEOUT_MS)
+                .followRedirects(true)
+                .get()
 
-            Jsoup.parse(html, url)
-        } catch (e: Exception) {
-            log.error("Failed to crawl $url: ${e.message}")
-            null
-        }
+        log.info("Resolved URL: ${document.location()}")
+        document
+    } catch (e: Exception) {
+        log.error("Failed to crawl $url: ${e.message}")
+        null
     }
 
     fun crawlWithFallback(urls: List<String>): CrawlResult {
@@ -36,7 +33,11 @@ class DocCrawler(
         for (url in urls) {
             val document = crawl(url)
             if (document != null) {
-                return CrawlResult(document = document, resolvedUrl = url, failedUrls = failedUrls)
+                return CrawlResult(
+                    document = document,
+                    resolvedUrl = document.location(),
+                    failedUrls = failedUrls,
+                )
             }
             failedUrls.add(url)
         }
