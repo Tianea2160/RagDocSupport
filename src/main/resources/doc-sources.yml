@@ -1,0 +1,38 @@
+sources:
+  spring-boot:
+    group: "org.springframework.boot"
+    docs:
+      reference:
+        url: "https://docs.spring.io/spring-boot/docs/{version}/reference/htmlsingle/"
+      migration:
+        url: "https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-{major}.0-Release-Notes"
+      changelog:
+        url: "https://github.com/spring-projects/spring-boot/releases/tag/v{version}"
+
+  spring-framework:
+    group: "org.springframework"
+    artifact: "spring-core"
+    docs:
+      reference:
+        url: "https://docs.spring.io/spring-framework/docs/{version}/reference/html/"
+
+  kafka:
+    group: "org.apache.kafka"
+    docs:
+      reference:
+        url: "https://kafka.apache.org/{majorMinor}/documentation/"
+
+  kotlinx-coroutines:
+    group: "org.jetbrains.kotlinx"
+    artifact: "kotlinx-coroutines-core"
+    docs:
+      guide:
+        url: "https://kotlinlang.org/docs/coroutines-guide.html"
+      changelog:
+        url: "https://github.com/Kotlin/kotlinx.coroutines/blob/master/CHANGES.md"
+
+  spring-ai:
+    group: "org.springframework.ai"
+    docs:
+      reference:
+        url: "https://docs.spring.io/spring-ai/reference/"
