@@ -1,8 +1,13 @@
 plugins {
-    kotlin("jvm") version "2.2.21"
-    kotlin("plugin.spring") version "2.2.21"
-    id("org.springframework.boot") version "4.0.5"
-    id("io.spring.dependency-management") version "1.1.7"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.spring)
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.ktlint)
+}
+
+ktlint {
+    version.set(libs.versions.ktlint.core)
 }
 
 group = "org.tianea"
@@ -17,23 +22,38 @@ java {
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://repo.spring.io/milestone") }
 }
 
-extra["springAiVersion"] = "2.0.0-M4"
-
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-webmvc")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.springframework.ai:spring-ai-starter-mcp-server-webmvc")
-    implementation("tools.jackson.module:jackson-module-kotlin")
-    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // Spring Boot
+    implementation(libs.spring.boot.starter.webmvc)
+    implementation(libs.kotlin.reflect)
+    implementation(libs.jackson.module.kotlin)
+
+    // Spring AI - MCP Server
+    implementation(libs.spring.ai.starter.mcp.server.webmvc)
+
+    // Spring AI - Ollama Embedding
+    implementation(libs.spring.ai.starter.model.ollama)
+
+    // Qdrant Java Client
+    implementation(libs.qdrant.client)
+
+    // HTML Parsing
+    implementation(libs.jsoup)
+
+    // YAML parsing for doc-sources.yml
+    implementation(libs.jackson.dataformat.yaml)
+
+    testImplementation(libs.spring.boot.starter.webmvc.test)
+    testImplementation(libs.kotlin.test.junit5)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
+        mavenBom(libs.spring.ai.bom.get().toString())
     }
 }
 

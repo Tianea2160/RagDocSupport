@@ -10,6 +10,7 @@ data class DocChunk(
     val embedding: FloatArray? = null,
 ) {
     override fun equals(other: Any?): Boolean = other is DocChunk && id == other.id
+
     override fun hashCode(): Int = id.hashCode()
 }
 

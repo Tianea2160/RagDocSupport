@@ -10,9 +10,8 @@ data class DocSource(
 data class DocUrlPattern(
     val urlTemplate: String,
 ) {
-    fun resolve(dependency: Dependency): String =
-        urlTemplate
-            .replace("{version}", dependency.version)
-            .replace("{major}", dependency.major.toString())
-            .replace("{majorMinor}", dependency.majorMinor)
+    fun resolve(dependency: Dependency): String = urlTemplate
+        .replace("{version}", dependency.version)
+        .replace("{major}", dependency.major.toString())
+        .replace("{majorMinor}", dependency.majorMinor)
 }

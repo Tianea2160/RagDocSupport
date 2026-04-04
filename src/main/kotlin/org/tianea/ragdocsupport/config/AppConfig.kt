@@ -10,12 +10,10 @@ import org.springframework.web.client.RestClient
 @Configuration
 @EnableConfigurationProperties(QdrantProperties::class)
 class AppConfig {
-
     @Bean
-    fun qdrantClient(properties: QdrantProperties): QdrantClient =
-        QdrantClient(
-            QdrantGrpcClient.newBuilder(properties.host, properties.port, false).build()
-        )
+    fun qdrantClient(properties: QdrantProperties): QdrantClient = QdrantClient(
+        QdrantGrpcClient.newBuilder(properties.host, properties.port, false).build(),
+    )
 
     @Bean
     fun restClient(): RestClient = RestClient.create()

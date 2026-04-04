@@ -1,3 +1,21 @@
 spring:
   application:
     name: RagDocSupport
+  ai:
+    mcp:
+      server:
+        name: rag-doc-support
+        version: 1.0.0
+        type: SYNC
+    ollama:
+      base-url: http://localhost:11434
+      embedding:
+        model: nomic-embed-text
+
+server:
+  port: 8080
+
+qdrant:
+  host: localhost
+  port: 6334
+  collection-name: doc-chunks
