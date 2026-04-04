@@ -3,7 +3,10 @@ sources:
     group: "org.springframework.boot"
     docs:
       reference:
-        url: "https://docs.spring.io/spring-boot/docs/{version}/reference/htmlsingle/"
+        urls:
+          - "https://docs.spring.io/spring-boot/{version}/reference/"
+          - "https://docs.spring.io/spring-boot/docs/{version}/reference/htmlsingle/"
+          - "https://docs.spring.io/spring-boot/docs/{version}/reference/html/"
       migration:
         url: "https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-{major}.0-Release-Notes"
       changelog:
@@ -14,7 +17,9 @@ sources:
     artifact: "spring-core"
     docs:
       reference:
-        url: "https://docs.spring.io/spring-framework/docs/{version}/reference/html/"
+        urls:
+          - "https://docs.spring.io/spring-framework/reference/{version}/"
+          - "https://docs.spring.io/spring-framework/docs/{version}/reference/html/"
 
   kafka:
     group: "org.apache.kafka"

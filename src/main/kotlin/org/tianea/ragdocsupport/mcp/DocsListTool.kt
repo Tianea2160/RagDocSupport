@@ -1,6 +1,6 @@
 package org.tianea.ragdocsupport.mcp
 
-import org.springframework.ai.tool.annotation.Tool
+import org.springframework.ai.mcp.annotation.McpTool
 import org.springframework.stereotype.Component
 import org.tianea.ragdocsupport.core.port.VectorStore
 
@@ -8,7 +8,7 @@ import org.tianea.ragdocsupport.core.port.VectorStore
 class DocsListTool(
     private val vectorStore: VectorStore,
 ) {
-    @Tool(
+    @McpTool(
         description = """List all indexed documentation libraries and their versions.
 Shows library name, version, number of indexed chunks, and whether it's marked as the latest version.
 Use this to check what documentation is available before searching.""",

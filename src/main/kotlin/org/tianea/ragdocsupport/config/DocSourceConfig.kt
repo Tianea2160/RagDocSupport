@@ -35,7 +35,19 @@ class DocSourceConfig {
                                 val docType =
                                     runCatching { DocType.valueOf(docTypeName.uppercase()) }.getOrNull()
                                         ?: return@mapNotNull null
-                                docType to DocUrlPattern(docNode["url"].asText())
+                                val urlsNode = docNode["urls"]
+                                val urlNode = docNode["url"]
+                                val templates =
+                                    when {
+                                        urlsNode != null && urlsNode.isArray ->
+                                            urlsNode.map { it.asText() }
+
+                                        urlNode != null ->
+                                            listOf(urlNode.asText())
+
+                                        else -> return@mapNotNull null
+                                    }
+                                docType to DocUrlPattern(templates)
                             }?.toMap() ?: emptyMap(),
                     )
                 }.toList()

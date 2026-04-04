@@ -29,4 +29,24 @@ class DocCrawler(
             null
         }
     }
+
+    fun crawlWithFallback(urls: List<String>): CrawlResult {
+        val failedUrls = mutableListOf<String>()
+
+        for (url in urls) {
+            val document = crawl(url)
+            if (document != null) {
+                return CrawlResult(document = document, resolvedUrl = url, failedUrls = failedUrls)
+            }
+            failedUrls.add(url)
+        }
+
+        return CrawlResult(document = null, resolvedUrl = null, failedUrls = failedUrls)
+    }
 }
+
+data class CrawlResult(
+    val document: Document?,
+    val resolvedUrl: String?,
+    val failedUrls: List<String>,
+)

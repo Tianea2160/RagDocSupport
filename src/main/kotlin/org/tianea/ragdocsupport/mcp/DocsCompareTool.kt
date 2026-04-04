@@ -1,8 +1,8 @@
 package org.tianea.ragdocsupport.mcp
 
 import org.springframework.ai.embedding.EmbeddingModel
-import org.springframework.ai.tool.annotation.Tool
-import org.springframework.ai.tool.annotation.ToolParam
+import org.springframework.ai.mcp.annotation.McpTool
+import org.springframework.ai.mcp.annotation.McpToolParam
 import org.springframework.stereotype.Component
 import org.tianea.ragdocsupport.core.port.VectorStore
 
@@ -11,16 +11,16 @@ class DocsCompareTool(
     private val vectorStore: VectorStore,
     private val embeddingModel: EmbeddingModel,
 ) {
-    @Tool(
+    @McpTool(
         description = """Compare documentation between two versions of a library.
 Searches migration guides, changelogs, and reference docs for both versions.
 Useful for understanding breaking changes, new features, and migration steps.""",
     )
     fun docsCompare(
-        @ToolParam(description = "Library name (e.g., 'spring-boot')") library: String,
-        @ToolParam(description = "Old version (e.g., '3.4.0')") fromVersion: String,
-        @ToolParam(description = "New version (e.g., '4.0.1')") toVersion: String,
-        @ToolParam(description = "Search query for specific topic (e.g., 'security configuration changes')", required = false) query: String?,
+        @McpToolParam(description = "Library name (e.g., 'spring-boot')") library: String,
+        @McpToolParam(description = "Old version (e.g., '3.4.0')") fromVersion: String,
+        @McpToolParam(description = "New version (e.g., '4.0.1')") toVersion: String,
+        @McpToolParam(description = "Search query for specific topic (e.g., 'security configuration changes')", required = false) query: String?,
     ): String {
         val searchQuery = query ?: "migration changes from $fromVersion to $toVersion"
         val queryEmbedding = embedQuery(searchQuery)

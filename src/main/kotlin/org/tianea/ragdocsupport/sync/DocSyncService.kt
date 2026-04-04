@@ -31,10 +31,10 @@ class DocSyncService(
     ): RegisterResult {
         val dependency = Dependency(group = "", artifact = "", version = version)
 
-        // Resolve URLs
-        val urls = resolveUrls(library, dependency, docUrl)
-        if (urls.isEmpty()) {
-            return RegisterResult(success = false, message = "No document URLs found for $library:$version")
+        // Resolve URL candidates per docType
+        val urlCandidates = resolveUrlCandidates(library, dependency, docUrl)
+        if (urlCandidates.isEmpty()) {
+            return RegisterResult(success = false)
         }
 
         // Ensure collection exists
@@ -53,27 +53,35 @@ class DocSyncService(
         vectorStore.deleteByLibraryAndVersion(library, version)
 
         var totalChunks = 0
+        val failedDocTypes = mutableListOf<FailedDocType>()
 
-        for ((docType, url) in urls) {
-            log.info("Processing $library:$version ($docType) from $url")
+        for ((docType, candidateUrls) in urlCandidates) {
+            log.info("Processing $library:$version ($docType) with ${candidateUrls.size} candidate URL(s)")
 
-            // Crawl
-            val document = crawler.crawl(url)
-            if (document == null) {
-                log.warn("Failed to crawl: $url")
+            // Crawl with fallback
+            val crawlResult = crawler.crawlWithFallback(candidateUrls)
+
+            val document = crawlResult.document
+            val resolvedUrl = crawlResult.resolvedUrl
+            if (document == null || resolvedUrl == null) {
+                log.warn("All candidate URLs failed for $library:$version ($docType)")
+                failedDocTypes.add(FailedDocType(docType, crawlResult.failedUrls))
                 continue
             }
+
+            log.info("Successfully crawled $library:$version ($docType) from $resolvedUrl")
 
             // Convert to markdown
             val markdown = converter.convert(document)
             if (markdown.isBlank()) {
-                log.warn("Empty content from: $url")
+                log.warn("Empty content from: $resolvedUrl")
+                failedDocTypes.add(FailedDocType(docType, listOf(resolvedUrl)))
                 continue
             }
 
             // Chunk
             val chunkResults = chunker.chunk(markdown)
-            log.info("Created ${chunkResults.size} chunks from $url")
+            log.info("Created ${chunkResults.size} chunks from $resolvedUrl")
 
             // Embed
             val texts = chunkResults.map { it.text }
@@ -91,7 +99,7 @@ class DocSyncService(
                             docType = docType,
                             section = chunkResult.section,
                             sectionPath = chunkResult.sectionPath,
-                            sourceUrl = url,
+                            sourceUrl = resolvedUrl,
                         ),
                         embedding = embeddings[idx],
                     )
@@ -104,23 +112,23 @@ class DocSyncService(
 
         return RegisterResult(
             success = totalChunks > 0,
-            message = "Indexed $totalChunks chunks for $library:$version",
             chunksIndexed = totalChunks,
+            failedDocTypes = failedDocTypes,
         )
     }
 
-    private fun resolveUrls(
+    private fun resolveUrlCandidates(
         library: String,
         dependency: Dependency,
         explicitUrl: String?,
-    ): List<Pair<DocType, String>> {
+    ): List<Pair<DocType, List<String>>> {
         if (explicitUrl != null) {
-            return listOf(DocType.REFERENCE to explicitUrl)
+            return listOf(DocType.REFERENCE to listOf(explicitUrl))
         }
 
         val source = docSourceRepository.findByLibrary(library) ?: return emptyList()
         return source.docs.map { (docType, pattern) ->
-            docType to pattern.resolve(dependency)
+            docType to pattern.resolveAll(dependency)
         }
     }
 
@@ -129,6 +137,11 @@ class DocSyncService(
 
 data class RegisterResult(
     val success: Boolean,
-    val message: String,
     val chunksIndexed: Int = 0,
+    val failedDocTypes: List<FailedDocType> = emptyList(),
+)
+
+data class FailedDocType(
+    val docType: DocType,
+    val triedUrls: List<String>,
 )

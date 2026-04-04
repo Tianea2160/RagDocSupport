@@ -1,8 +1,8 @@
 package org.tianea.ragdocsupport.mcp
 
 import org.springframework.ai.embedding.EmbeddingModel
-import org.springframework.ai.tool.annotation.Tool
-import org.springframework.ai.tool.annotation.ToolParam
+import org.springframework.ai.mcp.annotation.McpTool
+import org.springframework.ai.mcp.annotation.McpToolParam
 import org.springframework.stereotype.Component
 import org.tianea.ragdocsupport.core.port.VectorStore
 
@@ -11,16 +11,16 @@ class DocsSearchTool(
     private val vectorStore: VectorStore,
     private val embeddingModel: EmbeddingModel,
 ) {
-    @Tool(
+    @McpTool(
         description = """Search indexed documentation using semantic search.
 Returns relevant documentation chunks matching the query.
 Optionally filter by library name and/or version.""",
     )
     fun docsSearch(
-        @ToolParam(description = "Natural language search query (e.g., 'kafka consumer max.poll.interval.ms default value')") query: String,
-        @ToolParam(description = "Optional: filter by library name", required = false) library: String?,
-        @ToolParam(description = "Optional: filter by version", required = false) version: String?,
-        @ToolParam(description = "Number of results to return (default: 5)", required = false) limit: Int?,
+        @McpToolParam(description = "Natural language search query (e.g., 'kafka consumer max.poll.interval.ms default value')") query: String,
+        @McpToolParam(description = "Optional: filter by library name", required = false) library: String?,
+        @McpToolParam(description = "Optional: filter by version", required = false) version: String?,
+        @McpToolParam(description = "Number of results to return (default: 5)", required = false) limit: Int?,
     ): String {
         val queryEmbedding = embedQuery(query)
         val results = vectorStore.search(queryEmbedding, library, version, limit ?: 5)

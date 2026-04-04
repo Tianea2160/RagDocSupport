@@ -7,6 +7,7 @@ spring:
         name: rag-doc-support
         version: 1.0.0
         type: SYNC
+        protocol: STREAMABLE
     ollama:
       base-url: http://localhost:11434
       embedding:
