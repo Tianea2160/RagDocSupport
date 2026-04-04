@@ -45,7 +45,7 @@ Hexagonal architecture (Ports & Adapters) 기반. Spring AI MCP Server로 Claude
 ```
 docs-register 호출
   → DocSyncService: doc-sources.yml에서 URL 결정
-  → DocCrawler: HTML 크롤링 (Jsoup.connect(), 리다이렉트 자동 follow)
+  → DocCrawler (단일 페이지) 또는 DocTreeCrawler (recursive, WebMagic 기반 트리 탐색)
   → HtmlToMarkdownConverter: 마크다운 변환
   → DocChunker: 헤더 기반 청킹 (max 1000자, 120자 overlap)
   → EmbeddingModel (Ollama nomic-embed-text, 768차원)
@@ -56,7 +56,7 @@ docs-register 호출
 
 - **`core/model`** — 도메인 모델 (Dependency, DocChunk, DocSource). DocType enum: REFERENCE, MIGRATION, CHANGELOG, GUIDE
 - **`core/port`** — 인터페이스 (VectorStore, DocSourceRepository). 구현체 교체 용이
-- **`crawler`** — 크롤링 파이프라인. DocCrawler → HtmlToMarkdownConverter → DocChunker
+- **`crawler`** — 크롤링 파이프라인. DocCrawler(단일) / DocTreeCrawler(재귀, WebMagic) → HtmlToMarkdownConverter → DocChunker. Jsoup은 HTTP 301/302만 follow, JS 리다이렉트 미지원
 - **`store`** — QdrantVectorStore: Qdrant Java 클라이언트(gRPC) 직접 사용. Spring AI VectorStore 미사용 (하이브리드 검색, payload 업데이트 등 기능 제한으로 인해)
 - **`sync`** — DocSyncService: 전체 파이프라인 오케스트레이션
 - **`mcp`** — 4개 MCP 도구 (`@McpTool` 어노테이션 기반): docs-register, docs-search, docs-compare, docs-list
@@ -83,6 +83,12 @@ docs-register 호출
 - `gradle/libs.versions.toml` — 모든 의존성/플러그인 버전 관리 (Gradle Version Catalog)
 - `application.yaml` — 서버 포트, MCP 서버, Qdrant, Ollama 설정
 - `doc-sources.yml` — 라이브러리별 문서 URL 템플릿 (`{version}`, `{major}`, `{majorMinor}` 플레이스홀더). `urls` 배열로 fallback URL 지원
+- `{majorMinor}`는 점 포함 형태(`4.0`)로 치환됨. 점 없는 형태(`40`)가 필요한 사이트(Kafka 등)는 `docUrl` 직접 지정 필요
+
+## Known Limitations
+
+- `DocTreeCrawler` 스코프: seed URL 경로 하위만 탐색. 형제/상위 경로 링크는 무시됨. seed URL을 적절한 상위 경로로 지정해야 함
+- `_print` 등 프린트용 페이지가 있는 사이트는 중복 인덱싱 발생 가능 (필터링 미구현)
 
 ## Debugging
 

@@ -43,6 +43,10 @@ dependencies {
     // HTML Parsing
     implementation(libs.jsoup)
 
+    // Web Crawling
+    implementation(libs.webmagic.core)
+    implementation(libs.webmagic.extension)
+
     // YAML parsing for doc-sources.yml
     implementation(libs.jackson.dataformat.yaml)
 

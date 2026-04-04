@@ -47,7 +47,10 @@ class DocSourceConfig {
 
                                         else -> return@mapNotNull null
                                     }
-                                docType to DocUrlPattern(templates)
+                                val recursive = docNode["recursive"]?.asBoolean() ?: true
+                                val maxDepth = docNode["max-depth"]?.asInt() ?: 2
+                                val maxPages = docNode["max-pages"]?.asInt() ?: 100
+                                docType to DocUrlPattern(templates, recursive, maxDepth, maxPages)
                             }?.toMap() ?: emptyMap(),
                     )
                 }.toList()

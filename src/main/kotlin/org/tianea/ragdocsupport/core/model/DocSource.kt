@@ -7,8 +7,13 @@ data class DocSource(
     val docs: Map<DocType, DocUrlPattern>,
 )
 
+private const val DEFAULT_MAX_PAGES = 100
+
 data class DocUrlPattern(
     val urlTemplates: List<String>,
+    val recursive: Boolean = true,
+    val maxDepth: Int = 2,
+    val maxPages: Int = DEFAULT_MAX_PAGES,
 ) {
     constructor(urlTemplate: String) : this(listOf(urlTemplate))
 
