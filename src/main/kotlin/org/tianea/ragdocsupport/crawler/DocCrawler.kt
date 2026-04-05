@@ -5,6 +5,9 @@ import org.jsoup.nodes.Document
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.tianea.ragdocsupport.config.CrawlerProperties
+import org.tianea.ragdocsupport.sync.ProgressEvent
+import org.tianea.ragdocsupport.sync.ProgressEventType
+import org.tianea.ragdocsupport.sync.ProgressListener
 import kotlin.time.measureTimedValue
 
 @Component
@@ -13,7 +16,10 @@ class DocCrawler(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    fun crawl(url: String): Document? {
+    fun crawl(
+        url: String,
+        listener: ProgressListener = ProgressListener.NOOP,
+    ): Document? {
         val (result, duration) = measureTimedValue {
             runCatching {
                 Jsoup
@@ -24,16 +30,27 @@ class DocCrawler(
             }
         }
         return result
-            .onSuccess { log.info("GET $url -> ${it.location()} ($duration)") }
-            .onFailure { log.warn("GET $url -> FAILED ($duration): ${it.message}") }
+            .onSuccess {
+                val msg = "GET $url -> ${it.location()} ($duration)"
+                log.info(msg)
+                listener.onEvent(ProgressEvent(ProgressEventType.CRAWL, msg))
+            }
+            .onFailure {
+                val msg = "GET $url -> FAILED ($duration): ${it.message}"
+                log.warn(msg)
+                listener.onEvent(ProgressEvent(ProgressEventType.WARN, msg))
+            }
             .getOrNull()
     }
 
-    fun crawlWithFallback(urls: List<String>): CrawlResult {
+    fun crawlWithFallback(
+        urls: List<String>,
+        listener: ProgressListener = ProgressListener.NOOP,
+    ): CrawlResult {
         val failedUrls = mutableListOf<String>()
 
         for (url in urls) {
-            val document = crawl(url)
+            val document = crawl(url, listener)
             if (document != null) {
                 return CrawlResult(
                     document = document,

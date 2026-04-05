@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Register - RagDocSupport')}"></head>
+<body class="bg-gray-50 min-h-screen">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+
+<div class="max-w-5xl mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-6">Register Documentation</h1>
+
+    <!-- Tab Navigation -->
+    <div class="flex gap-1 mb-4">
+        <button id="tab-single" onclick="switchTab('single')"
+                class="px-4 py-2 text-sm font-medium rounded-t-lg bg-white border border-b-0 text-gray-800">
+            Single
+        </button>
+        <button id="tab-bulk" onclick="switchTab('bulk')"
+                class="px-4 py-2 text-sm font-medium rounded-t-lg bg-gray-200 text-gray-600">
+            Bulk
+        </button>
+    </div>
+
+    <!-- Single Registration Form -->
+    <div id="form-single" class="bg-white rounded-lg shadow p-6 mb-6">
+        <form id="register-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Library</label>
+                <select name="library" class="w-full border rounded-md px-3 py-2 text-sm" required>
+                    <option value="">Select library...</option>
+                    <option th:each="lib : ${libraries}" th:value="${lib}" th:text="${lib}"></option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Version</label>
+                <input name="version" type="text" placeholder="e.g. 4.0.5"
+                       class="w-full border rounded-md px-3 py-2 text-sm" required/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Doc URL (optional)</label>
+                <input name="docUrl" type="text" placeholder="https://..."
+                       class="w-full border rounded-md px-3 py-2 text-sm"/>
+            </div>
+        </form>
+        <div class="mt-4">
+            <button id="btn-register" onclick="startRegistration()"
+                    class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
+                Register
+            </button>
+        </div>
+    </div>
+
+    <!-- Bulk Registration Form -->
+    <div id="form-bulk" class="bg-white rounded-lg shadow p-6 mb-6 hidden">
+        <form id="bulk-form">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Libraries (one per line, format: library:version)
+                </label>
+                <textarea name="input" rows="6" placeholder="spring-boot:4.0.5&#10;jooq:3.20.11&#10;kafka:3.9.0"
+                          class="w-full border rounded-md px-3 py-2 text-sm font-mono"></textarea>
+            </div>
+        </form>
+        <div class="mt-4">
+            <button id="btn-bulk-register" onclick="startBulkRegistration()"
+                    class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
+                Register All
+            </button>
+        </div>
+    </div>
+
+    <!-- Log Container -->
+    <div id="log-wrapper" class="hidden">
+        <div class="bg-gray-900 rounded-lg shadow overflow-hidden">
+            <div class="px-4 py-2 bg-gray-800 flex justify-between items-center">
+                <span class="text-gray-400 text-xs font-mono">Progress Log</span>
+                <span id="task-link" class="text-xs"></span>
+            </div>
+            <div id="log-container" class="log-container p-4 max-h-96 overflow-y-auto"
+                 hx-ext="sse" hx-swap="beforeend scroll:bottom">
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Container -->
+    <div id="result-container" class="mt-4"></div>
+</div>
+
+<script>
+    function switchTab(tab) {
+        document.getElementById('form-single').classList.toggle('hidden', tab !== 'single');
+        document.getElementById('form-bulk').classList.toggle('hidden', tab !== 'bulk');
+        document.getElementById('tab-single').classList.toggle('bg-white', tab === 'single');
+        document.getElementById('tab-single').classList.toggle('text-gray-800', tab === 'single');
+        document.getElementById('tab-single').classList.toggle('bg-gray-200', tab !== 'single');
+        document.getElementById('tab-single').classList.toggle('text-gray-600', tab !== 'single');
+        document.getElementById('tab-bulk').classList.toggle('bg-white', tab === 'bulk');
+        document.getElementById('tab-bulk').classList.toggle('text-gray-800', tab === 'bulk');
+        document.getElementById('tab-bulk').classList.toggle('bg-gray-200', tab !== 'bulk');
+        document.getElementById('tab-bulk').classList.toggle('text-gray-600', tab !== 'bulk');
+    }
+
+    function startRegistration() {
+        const form = document.getElementById('register-form');
+        const library = form.querySelector('[name=library]').value;
+        const version = form.querySelector('[name=version]').value;
+        if (!library || !version) {
+            alert('Library and version are required');
+            return;
+        }
+        const params = new URLSearchParams(new FormData(form));
+        startStream('/web/register/stream?' + params);
+    }
+
+    function startBulkRegistration() {
+        const form = document.getElementById('bulk-form');
+        const input = form.querySelector('[name=input]').value.trim();
+        if (!input) {
+            alert('Enter at least one library:version');
+            return;
+        }
+        const params = new URLSearchParams({input: input});
+        startStream('/web/register/stream/bulk?' + params);
+    }
+
+    function startStream(url) {
+        // Reset UI
+        const logContainer = document.getElementById('log-container');
+        logContainer.innerHTML = '';
+        document.getElementById('result-container').innerHTML = '';
+        document.getElementById('log-wrapper').classList.remove('hidden');
+        document.getElementById('btn-register').disabled = true;
+        document.getElementById('btn-bulk-register').disabled = true;
+
+        const source = new EventSource(url);
+
+        source.addEventListener('taskId', function(e) {
+            document.getElementById('task-link').innerHTML =
+                '<a href="/web/tasks/' + e.data + '" class="text-blue-400 hover:underline">Task: ' + e.data + '</a>';
+        });
+
+        source.addEventListener('taskIds', function(e) {
+            document.getElementById('task-link').innerHTML =
+                '<a href="/web/tasks" class="text-blue-400 hover:underline">View tasks</a>';
+        });
+
+        source.addEventListener('log', function(e) {
+            logContainer.innerHTML += e.data;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        });
+
+        source.addEventListener('complete', function(e) {
+            document.getElementById('result-container').innerHTML = e.data;
+            source.close();
+            enableButtons();
+        });
+
+        source.addEventListener('error', function(e) {
+            if (e.data) {
+                document.getElementById('result-container').innerHTML = e.data;
+            }
+            source.close();
+            enableButtons();
+        });
+
+        source.onerror = function() {
+            source.close();
+            enableButtons();
+        };
+    }
+
+    function enableButtons() {
+        document.getElementById('btn-register').disabled = false;
+        document.getElementById('btn-bulk-register').disabled = false;
+    }
+</script>
+</body>
+</html>

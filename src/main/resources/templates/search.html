@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Search - RagDocSupport')}"></head>
+<body class="bg-gray-50 min-h-screen">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+
+<div class="max-w-5xl mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-6">Search Documentation</h1>
+
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <form hx-get="/web/search/results" hx-target="#search-results" hx-swap="innerHTML"
+              hx-indicator="#search-indicator" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Query</label>
+                <input name="query" type="text" placeholder="e.g. how to configure datasource"
+                       class="w-full border rounded-md px-3 py-2 text-sm" required/>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Library (optional)</label>
+                    <input name="library" type="text" placeholder="e.g. spring-boot"
+                           class="w-full border rounded-md px-3 py-2 text-sm"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Version (optional)</label>
+                    <input name="version" type="text" placeholder="e.g. 4.0.5"
+                           class="w-full border rounded-md px-3 py-2 text-sm"/>
+                </div>
+            </div>
+            <button type="submit"
+                    class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
+                Search
+            </button>
+            <span id="search-indicator" class="htmx-indicator text-sm text-gray-500 ml-2">Searching...</span>
+        </form>
+    </div>
+
+    <div id="search-results"></div>
+</div>
+</body>
+</html>

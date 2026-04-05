@@ -2,6 +2,7 @@ package org.tianea.ragdocsupport.mcp
 
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
+import io.mockk.any
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
@@ -16,7 +17,7 @@ class DocsRegisterToolTest {
 
     @Test
     fun `returns success message with chunk count`() {
-        every { syncService.register("spring-boot", "4.0.0", null) } returns RegisterResult(
+        every { syncService.register("spring-boot", "4.0.0", null, any()) } returns RegisterResult(
             success = true,
             chunksIndexed = 42,
         )
@@ -29,7 +30,7 @@ class DocsRegisterToolTest {
 
     @Test
     fun `returns failure message`() {
-        every { syncService.register("unknown", "1.0", null) } returns RegisterResult(success = false)
+        every { syncService.register("unknown", "1.0", null, any()) } returns RegisterResult(success = false)
 
         val result = tool.docsRegister("unknown", "1.0", null)
 
@@ -38,7 +39,7 @@ class DocsRegisterToolTest {
 
     @Test
     fun `includes failed doc types in result`() {
-        every { syncService.register("kafka", "3.7.0", null) } returns RegisterResult(
+        every { syncService.register("kafka", "3.7.0", null, any()) } returns RegisterResult(
             success = true,
             chunksIndexed = 10,
             failedDocTypes = listOf(FailedDocType(DocType.MIGRATION, listOf("https://url1", "https://url2"))),
@@ -54,7 +55,7 @@ class DocsRegisterToolTest {
 
     @Test
     fun `does not show failed section when all succeed`() {
-        every { syncService.register("lib", "1.0", null) } returns RegisterResult(
+        every { syncService.register("lib", "1.0", null, any()) } returns RegisterResult(
             success = true,
             chunksIndexed = 5,
         )
@@ -67,7 +68,7 @@ class DocsRegisterToolTest {
     @Test
     fun `passes explicit docUrl to service`() {
         every {
-            syncService.register("mylib", "1.0", "https://custom.com/docs")
+            syncService.register("mylib", "1.0", "https://custom.com/docs", any())
         } returns RegisterResult(success = true, chunksIndexed = 3)
 
         val result = tool.docsRegister("mylib", "1.0", "https://custom.com/docs")

@@ -43,6 +43,15 @@ dependencies {
     // Qdrant Java Client
     implementation(libs.qdrant.client)
 
+    // Thymeleaf + htmx
+    implementation(libs.spring.boot.starter.thymeleaf)
+    implementation(libs.webjars.htmx)
+
+    // SQLite + JPA (task persistence)
+    implementation(libs.spring.boot.starter.data.jpa)
+    implementation(libs.sqlite.jdbc)
+    implementation(libs.hibernate.community.dialects)
+
     // HTML Parsing
     implementation(libs.jsoup)
 

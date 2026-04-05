@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="logs">
+    <div th:each="logEntry : ${logs}" class="flex gap-2 text-sm font-mono">
+        <span class="text-gray-500" th:text="${#temporals.format(logEntry.timestamp, 'HH:mm:ss')}"></span>
+        <span th:class="${
+            logEntry.type.name() == 'CRAWL' ? 'text-blue-400' :
+            logEntry.type.name() == 'CHUNK' ? 'text-purple-400' :
+            logEntry.type.name() == 'EMBED' ? 'text-cyan-400' :
+            logEntry.type.name() == 'UPSERT' ? 'text-green-400' :
+            logEntry.type.name() == 'WARN' ? 'text-yellow-400' :
+            logEntry.type.name() == 'ERROR' ? 'text-red-400' :
+            logEntry.type.name() == 'COMPLETE' ? 'text-green-400' :
+            'text-gray-300'
+        }" th:text="'[' + ${logEntry.type} + ']'"></span>
+        <span class="text-gray-200" th:text="${logEntry.message}"></span>
+    </div>
+    <div th:if="${status != null && status.name() == 'RUNNING'}"
+         th:hx-get="@{/web/tasks/{id}/logs(id=${logs[0]?.task?.id}, afterSequence=${nextSequence})}"
+         hx-trigger="every 3s"
+         hx-target="#new-logs"
+         hx-swap="innerHTML">
+    </div>
+</div>
+</html>

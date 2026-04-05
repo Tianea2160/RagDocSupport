@@ -40,3 +40,6 @@ out/
 .kotlin
 .java-version
 .mcp.json
+
+### SQLite data ###
+data/

@@ -27,20 +27,29 @@ class DocProcessor(
         version: String,
         docType: DocType,
         candidateUrls: List<String>,
+        listener: ProgressListener = ProgressListener.NOOP,
     ): List<DocChunk>? {
-        val crawlResult = crawler.crawlWithFallback(candidateUrls)
+        val crawlResult = crawler.crawlWithFallback(candidateUrls, listener)
         val document = crawlResult.document
         val resolvedUrl = crawlResult.resolvedUrl
         if (document == null || resolvedUrl == null) {
-            log.warn("All candidate URLs failed for $library:$version ($docType)")
+            val msg = "All candidate URLs failed for $library:$version ($docType)"
+            log.warn(msg)
+            listener.onEvent(ProgressEvent(ProgressEventType.WARN, msg))
             return null
         }
 
-        log.info("Successfully crawled $library:$version ($docType) from $resolvedUrl")
+        val crawlMsg = "Successfully crawled $library:$version ($docType) from $resolvedUrl"
+        log.info(crawlMsg)
+        listener.onEvent(ProgressEvent(ProgressEventType.CRAWL, crawlMsg))
         val chunks = convertAndChunk(document, resolvedUrl, library, version, docType)
         if (chunks.isEmpty()) return null
 
-        return embedChunks(chunks)
+        val chunkMsg = "Created ${chunks.size} chunks for $library:$version ($docType)"
+        listener.onEvent(ProgressEvent(ProgressEventType.CHUNK, chunkMsg))
+        return embedChunks(chunks).also {
+            listener.onEvent(ProgressEvent(ProgressEventType.EMBED, "Embedded ${it.size} chunks for $library:$version ($docType)"))
+        }
     }
 
     fun processRecursive(
@@ -49,18 +58,22 @@ class DocProcessor(
         docType: DocType,
         candidateUrls: List<String>,
         maxDepth: Int,
+        listener: ProgressListener = ProgressListener.NOOP,
     ): List<DocChunk>? {
         for (seedUrl in candidateUrls) {
-            val treeResults = treeCrawler.crawlTree(seedUrl, maxDepth)
+            val treeResults = treeCrawler.crawlTree(seedUrl, maxDepth, listener)
             if (treeResults.isEmpty()) {
-                log.warn("Tree crawl returned no results for $seedUrl")
+                val msg = "Tree crawl returned no results for $seedUrl"
+                log.warn(msg)
+                listener.onEvent(ProgressEvent(ProgressEventType.WARN, msg))
                 continue
             }
 
-            log.info(
+            val treeMsg =
                 "Tree crawl for $library:$version ($docType) returned " +
-                    "${treeResults.size} pages from $seedUrl",
-            )
+                    "${treeResults.size} pages from $seedUrl"
+            log.info(treeMsg)
+            listener.onEvent(ProgressEvent(ProgressEventType.INFO, treeMsg))
 
             val preEmbedChunks = treeResults.flatMap { result ->
                 convertAndChunk(result.document, result.url, library, version, docType)
@@ -68,12 +81,19 @@ class DocProcessor(
 
             if (preEmbedChunks.isEmpty()) continue
 
+            val chunkMsg = "Created ${preEmbedChunks.size} chunks for $library:$version ($docType)"
+            listener.onEvent(ProgressEvent(ProgressEventType.CHUNK, chunkMsg))
+
             return embedChunks(preEmbedChunks).also {
-                log.info("Batch-embedded ${it.size} chunks for $library:$version ($docType)")
+                val embedMsg = "Batch-embedded ${it.size} chunks for $library:$version ($docType)"
+                log.info(embedMsg)
+                listener.onEvent(ProgressEvent(ProgressEventType.EMBED, embedMsg))
             }
         }
 
-        log.warn("All candidate URLs failed for recursive crawl $library:$version ($docType)")
+        val failMsg = "All candidate URLs failed for recursive crawl $library:$version ($docType)"
+        log.warn(failMsg)
+        listener.onEvent(ProgressEvent(ProgressEventType.WARN, failMsg))
         return null
     }
 

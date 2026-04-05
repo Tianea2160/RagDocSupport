@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="results">
+    <div th:if="${results.isEmpty()}" class="text-center text-gray-500 py-8">
+        No results found.
+    </div>
+    <div th:each="result : ${results}" class="bg-white rounded-lg shadow mb-4 p-4">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="font-medium text-sm" th:text="${result.metadata.library + ':' + result.metadata.version}"></span>
+            <span class="text-xs text-gray-500" th:text="${result.metadata.docType}"></span>
+        </div>
+        <div th:if="${result.metadata.sectionPath != null && !result.metadata.sectionPath.isEmpty()}"
+             class="text-xs text-gray-500 mb-2" th:text="${result.metadata.sectionPath}"></div>
+        <div class="text-sm text-gray-700 whitespace-pre-wrap break-words border-l-2 border-gray-200 pl-3"
+             th:text="${result.text.length() > 500 ? result.text.substring(0, 500) + '...' : result.text}"></div>
+        <div class="mt-2">
+            <a th:href="${result.metadata.sourceUrl}" target="_blank"
+               class="text-xs text-blue-600 hover:underline" th:text="${result.metadata.sourceUrl}"></a>
+        </div>
+    </div>
+</div>
+</html>

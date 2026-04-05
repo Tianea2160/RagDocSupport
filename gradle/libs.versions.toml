@@ -9,6 +9,9 @@ qdrant = "1.17.0"
 jsoup = "1.22.1"
 mockk = "1.14.9"
 kotest = "6.0.7"
+webjars-htmx = "2.0.8"
+sqlite-jdbc = "3.49.1.0"
+hibernate-community-dialects = "7.0.6"
 
 [libraries]
 spring-boot-starter-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
@@ -27,6 +30,11 @@ netty-resolver-dns-native-macos = { module = "io.netty:netty-resolver-dns-native
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+spring-boot-starter-thymeleaf = { module = "org.springframework.boot:spring-boot-starter-thymeleaf" }
+spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+webjars-htmx = { module = "org.webjars.npm:htmx.org", version.ref = "webjars-htmx" }
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
+hibernate-community-dialects = { module = "org.hibernate.orm:hibernate-community-dialects", version.ref = "hibernate-community-dialects" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

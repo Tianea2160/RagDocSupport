@@ -5,6 +5,9 @@ import org.jsoup.nodes.Document
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.tianea.ragdocsupport.config.CrawlerProperties
+import org.tianea.ragdocsupport.sync.ProgressEvent
+import org.tianea.ragdocsupport.sync.ProgressEventType
+import org.tianea.ragdocsupport.sync.ProgressListener
 import java.net.URI
 import kotlin.time.measureTime
 import kotlin.time.measureTimedValue
@@ -18,8 +21,11 @@ class DocTreeCrawler(
     fun crawlTree(
         seedUrl: String,
         maxDepth: Int = 2,
+        listener: ProgressListener = ProgressListener.NOOP,
     ): List<TreeCrawlResult> {
-        log.info("Starting tree crawl from: $seedUrl (maxDepth=$maxDepth)")
+        val startMsg = "Starting tree crawl from: $seedUrl (maxDepth=$maxDepth)"
+        log.info(startMsg)
+        listener.onEvent(ProgressEvent(ProgressEventType.INFO, startMsg))
 
         val scopePrefix = extractScopePrefix(seedUrl)
         val visited = mutableSetOf(normalizeUrl(seedUrl))
@@ -36,23 +42,25 @@ class DocTreeCrawler(
 
                 val levelDuration = measureTime {
                     for (url in currentLevel) {
-                        crawlPage(url, scopePrefix, depth, maxDepth, visited, results, nextLevel)
+                        crawlPage(url, scopePrefix, depth, maxDepth, visited, results, nextLevel, listener)
                     }
                 }
-                log.info(
+                val depthMsg =
                     "Depth $depth complete: $levelSize URLs fetched in $levelDuration " +
-                        "(${nextLevel.size} links discovered, ${results.size} pages total)",
-                )
+                        "(${nextLevel.size} links discovered, ${results.size} pages total)"
+                log.info(depthMsg)
+                listener.onEvent(ProgressEvent(ProgressEventType.INFO, depthMsg))
 
                 currentLevel = nextLevel
             }
         }
 
         val avgPerPage = if (results.isNotEmpty()) totalDuration / results.size else totalDuration
-        log.info(
+        val completeMsg =
             "Tree crawl complete: ${results.size} pages from $seedUrl " +
-                "in $totalDuration (avg $avgPerPage/page)",
-        )
+                "in $totalDuration (avg $avgPerPage/page)"
+        log.info(completeMsg)
+        listener.onEvent(ProgressEvent(ProgressEventType.INFO, completeMsg))
         return results
     }
 
@@ -64,8 +72,9 @@ class DocTreeCrawler(
         visited: MutableSet<String>,
         results: MutableList<TreeCrawlResult>,
         nextLevel: MutableList<String>,
+        listener: ProgressListener,
     ) {
-        val document = fetchWithRetry(url) ?: return
+        val document = fetchWithRetry(url, listener) ?: return
         results.add(TreeCrawlResult(document, url, depth))
 
         if (depth < maxDepth) {
@@ -80,7 +89,10 @@ class DocTreeCrawler(
         Thread.sleep(crawlerProperties.sleepTimeMs.toLong())
     }
 
-    private fun fetchWithRetry(url: String): Document? {
+    private fun fetchWithRetry(
+        url: String,
+        listener: ProgressListener,
+    ): Document? {
         repeat(crawlerProperties.retryTimes + 1) { attempt ->
             val (result, duration) = measureTimedValue {
                 runCatching {
@@ -92,15 +104,20 @@ class DocTreeCrawler(
                 }
             }
             result.onSuccess { document ->
-                log.info("GET $url -> ${document.location()} ($duration)")
+                val msg = "GET $url -> ${document.location()} ($duration)"
+                log.info(msg)
+                listener.onEvent(ProgressEvent(ProgressEventType.CRAWL, msg))
                 return document
             }
             result.onFailure { e ->
-                if (attempt < crawlerProperties.retryTimes) {
-                    log.warn("GET $url -> FAILED ($duration, retry ${attempt + 1}): ${e.message}")
-                } else {
-                    log.warn("GET $url -> FAILED ($duration, no more retries): ${e.message}")
-                }
+                val msg =
+                    if (attempt < crawlerProperties.retryTimes) {
+                        "GET $url -> FAILED ($duration, retry ${attempt + 1}): ${e.message}"
+                    } else {
+                        "GET $url -> FAILED ($duration, no more retries): ${e.message}"
+                    }
+                log.warn(msg)
+                listener.onEvent(ProgressEvent(ProgressEventType.WARN, msg))
             }
         }
         return null
