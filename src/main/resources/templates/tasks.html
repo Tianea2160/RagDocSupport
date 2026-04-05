@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Tasks - RagDocSupport')}"></head>
+<body class="bg-surface-950 min-h-screen text-surface-200">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+
+<div class="max-w-6xl mx-auto px-6 py-8">
+
+    <div class="flex items-end justify-between mb-8 animate-fade-in">
+        <div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">Task History</h1>
+            <p class="text-sm text-surface-200/50 mt-1">All registration tasks</p>
+        </div>
+    </div>
+
+    <div class="bg-surface-900 border border-surface-800/60 rounded-xl overflow-hidden animate-slide-up">
+        <div th:if="${tasks.isEmpty()}" class="px-5 py-12 text-center">
+            <p class="text-surface-200/40 text-sm">No tasks yet.</p>
+            <a href="/web/register" class="text-accent text-sm hover:underline mt-1 inline-block">Register documentation &rarr;</a>
+        </div>
+        <table th:if="${!tasks.isEmpty()}" class="w-full text-sm">
+            <thead>
+                <tr class="text-surface-200/40 text-xs uppercase tracking-wider">
+                    <th class="px-5 py-2.5 text-left font-medium">ID</th>
+                    <th class="px-5 py-2.5 text-left font-medium">Library</th>
+                    <th class="px-5 py-2.5 text-center font-medium">Status</th>
+                    <th class="px-5 py-2.5 text-right font-medium">Chunks</th>
+                    <th class="px-5 py-2.5 text-left font-medium">Started</th>
+                    <th class="px-5 py-2.5 text-left font-medium">Error</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="task : ${tasks}" class="border-t border-surface-800/40 hover:bg-surface-800/30 transition-colors">
+                    <td class="px-5 py-2.5">
+                        <a th:href="@{/web/tasks/{id}(id=${task.id})}" class="text-accent/70 hover:text-accent font-mono text-xs transition-colors" th:text="${task.id}"></a>
+                    </td>
+                    <td class="px-5 py-2.5 font-mono text-white/80" th:text="${task.library + ':' + task.version}"></td>
+                    <td class="px-5 py-2.5 text-center">
+                        <span th:if="${task.status.name() == 'RUNNING'}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono bg-run/10 text-run border border-run/20">
+                            <span class="w-1.5 h-1.5 rounded-full bg-run animate-pulse"></span>running
+                        </span>
+                        <span th:if="${task.status.name() == 'COMPLETED'}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono bg-ok/10 text-ok border border-ok/20">done</span>
+                        <span th:if="${task.status.name() == 'FAILED'}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono bg-fail/10 text-fail border border-fail/20">failed</span>
+                    </td>
+                    <td class="px-5 py-2.5 text-right font-mono text-surface-200/60" th:text="${task.chunksIndexed}"></td>
+                    <td class="px-5 py-2.5 text-surface-200/40 text-xs font-mono" th:text="${#temporals.format(task.startedAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                    <td class="px-5 py-2.5 text-fail/70 text-xs truncate max-w-[200px]" th:text="${task.errorMessage}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

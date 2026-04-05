@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Search - RagDocSupport')}"></head>
+<body class="bg-surface-950 min-h-screen text-surface-200">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+
+<div class="max-w-6xl mx-auto px-6 py-8">
+
+    <!-- Header -->
+    <div class="mb-8 animate-fade-in">
+        <h1 class="text-2xl font-bold text-white tracking-tight">Search Documentation</h1>
+        <p class="text-sm text-surface-200/50 mt-1">Semantic search across indexed libraries</p>
+    </div>
+
+    <!-- Search Form -->
+    <div class="bg-surface-900 border border-surface-800/60 rounded-xl p-6 mb-6 animate-slide-up">
+        <form hx-get="/web/search/results" hx-target="#search-results" hx-swap="innerHTML"
+              hx-indicator="#search-indicator" class="space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-surface-200/60 mb-1.5 uppercase tracking-wider">Query</label>
+                <input name="query" type="text" placeholder="e.g. how to configure datasource" required
+                       class="w-full bg-surface-950 border border-surface-800 rounded-lg px-4 py-3 text-sm text-white font-mono placeholder-surface-200/25 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-colors"/>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-surface-200/60 mb-1.5 uppercase tracking-wider">Library <span class="text-surface-200/30 normal-case">(optional)</span></label>
+                    <input name="library" type="text" placeholder="e.g. spring-boot"
+                           class="w-full bg-surface-950 border border-surface-800 rounded-lg px-3 py-2.5 text-sm text-white font-mono placeholder-surface-200/25 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-colors"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-surface-200/60 mb-1.5 uppercase tracking-wider">Version <span class="text-surface-200/30 normal-case">(optional)</span></label>
+                    <input name="version" type="text" placeholder="e.g. 4.0.5"
+                           class="w-full bg-surface-950 border border-surface-800 rounded-lg px-3 py-2.5 text-sm text-white font-mono placeholder-surface-200/25 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-colors"/>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 pt-2">
+                <button type="submit"
+                        class="inline-flex items-center gap-2 bg-accent text-surface-950 px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-accent-bright transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    Search
+                </button>
+                <span id="search-indicator" class="htmx-indicator inline-flex items-center gap-2 text-xs text-surface-200/40 font-mono">
+                    <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    searching...
+                </span>
+            </div>
+        </form>
+    </div>
+
+    <div id="search-results"></div>
+</div>
+</body>
+</html>

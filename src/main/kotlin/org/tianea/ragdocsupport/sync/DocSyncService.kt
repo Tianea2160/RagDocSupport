@@ -24,9 +24,13 @@ class DocSyncService(
         library: String,
         version: String,
         docUrl: String? = null,
+        listener: ProgressListener = ProgressListener.NOOP,
     ): RegisterResult {
+        listener.onEvent(ProgressEvent(ProgressEventType.INFO, "Starting registration for $library:$version"))
+
         val urlCandidates = resolveUrlCandidates(library, Dependency("", "", version), docUrl)
         if (urlCandidates.isEmpty()) {
+            listener.onEvent(ProgressEvent(ProgressEventType.ERROR, "No URL candidates found for $library:$version"))
             return RegisterResult(success = false)
         }
 
@@ -48,10 +52,11 @@ class DocSyncService(
             for ((docType, pattern, candidateUrls) in urlCandidates) {
                 scope.fork<Unit>(
                     Runnable {
-                        log.info(
+                        val procMsg =
                             "Processing $library:$version ($docType) " +
-                                "with ${candidateUrls.size} candidate URL(s)",
-                        )
+                                "with ${candidateUrls.size} candidate URL(s)"
+                        log.info(procMsg)
+                        listener.onEvent(ProgressEvent(ProgressEventType.INFO, procMsg))
                         val chunks =
                             if (pattern.recursive) {
                                 docProcessor.processRecursive(
@@ -60,9 +65,10 @@ class DocSyncService(
                                     docType,
                                     candidateUrls,
                                     pattern.maxDepth,
+                                    listener,
                                 )
                             } else {
-                                docProcessor.processSingle(library, version, docType, candidateUrls)
+                                docProcessor.processSingle(library, version, docType, candidateUrls, listener)
                             }
                         docTypeResults.add(DocTypeProcessResult(docType, candidateUrls, chunks))
                     },
@@ -81,7 +87,26 @@ class DocSyncService(
             }
             vectorStore.upsert(result.chunks)
             totalChunks += result.chunks.size
+            listener.onEvent(
+                ProgressEvent(
+                    ProgressEventType.UPSERT,
+                    "Upserted ${result.chunks.size} chunks for $library:$version (${result.docType})",
+                ),
+            )
         }
+
+        val completionMsg =
+            if (totalChunks > 0) {
+                "Registration complete: $totalChunks chunks indexed for $library:$version"
+            } else {
+                "Registration failed: no chunks indexed for $library:$version"
+            }
+        listener.onEvent(
+            ProgressEvent(
+                if (totalChunks > 0) ProgressEventType.COMPLETE else ProgressEventType.ERROR,
+                completionMsg,
+            ),
+        )
 
         return RegisterResult(
             success = totalChunks > 0,
@@ -90,7 +115,10 @@ class DocSyncService(
         )
     }
 
-    fun registerBulk(libraries: List<BulkRegisterRequest>): BulkRegisterResult {
+    fun registerBulk(
+        libraries: List<BulkRegisterRequest>,
+        listener: ProgressListener = ProgressListener.NOOP,
+    ): BulkRegisterResult {
         val results = ConcurrentLinkedQueue<BulkRegisterEntry>()
 
         StructuredTaskScope.open(Joiner.awaitAll<Unit>()).use { scope ->
@@ -98,7 +126,7 @@ class DocSyncService(
                 scope.fork<Unit>(
                     Runnable {
                         log.info("Bulk registering ${request.library}:${request.version}")
-                        val result = register(request.library, request.version, request.docUrl)
+                        val result = register(request.library, request.version, request.docUrl, listener)
                         results.add(BulkRegisterEntry(request.library, request.version, result))
                     },
                 )

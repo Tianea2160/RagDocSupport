@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Dashboard - RagDocSupport')}"></head>
+<body class="bg-surface-950 min-h-screen text-surface-200">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+
+<div class="max-w-6xl mx-auto px-6 py-8">
+
+    <!-- Header -->
+    <div class="flex items-end justify-between mb-8 animate-fade-in">
+        <div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
+            <p class="text-sm text-surface-200/50 mt-1">Indexed documentation overview</p>
+        </div>
+        <a href="/web/register" class="inline-flex items-center gap-2 bg-accent/10 text-accent border border-accent/20 px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent/20 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Register
+        </a>
+    </div>
+
+    <!-- Running Tasks Banner -->
+    <div th:if="${runningTasks != null and !runningTasks.isEmpty()}" class="mb-6 bg-run/5 border border-run/20 rounded-lg p-4 animate-slide-up">
+        <div class="flex items-center gap-2 mb-3">
+            <span class="relative flex h-2.5 w-2.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-run opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-run"></span>
+            </span>
+            <h3 class="text-sm font-semibold text-run">Running Tasks</h3>
+        </div>
+        <div th:each="task : ${runningTasks}" class="flex items-center gap-3 text-sm py-1">
+            <span class="font-mono text-white/90" th:text="${task.library + ':' + task.version}"></span>
+            <a th:href="@{/web/tasks/{id}(id=${task.id})}" class="text-run/70 hover:text-run text-xs font-mono transition-colors">view &rarr;</a>
+        </div>
+    </div>
+
+    <!-- Indexed Libraries -->
+    <div class="bg-surface-900 border border-surface-800/60 rounded-xl overflow-hidden mb-6 animate-slide-up" style="animation-delay: 0.05s">
+        <div class="px-5 py-3.5 border-b border-surface-800/60 flex items-center justify-between">
+            <h2 class="font-semibold text-white text-sm">Indexed Libraries</h2>
+            <span th:if="${!libraries.isEmpty()}" class="text-xs font-mono text-surface-200/40" th:text="${#lists.size(libraries)} + ' entries'"></span>
+        </div>
+        <div th:if="${libraries.isEmpty()}" class="px-5 py-12 text-center">
+            <p class="text-surface-200/40 text-sm">No libraries indexed yet.</p>
+            <a href="/web/register" class="text-accent text-sm hover:underline mt-1 inline-block">Register one &rarr;</a>
+        </div>
+        <table th:if="${!libraries.isEmpty()}" class="w-full text-sm">
+            <thead>
+                <tr class="text-surface-200/40 text-xs uppercase tracking-wider">
+                    <th class="px-5 py-2.5 text-left font-medium">Library</th>
+                    <th class="px-5 py-2.5 text-left font-medium">Version</th>
+                    <th class="px-5 py-2.5 text-right font-medium">Chunks</th>
+                    <th class="px-5 py-2.5 text-center font-medium">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="lib,iter : ${libraries}" class="border-t border-surface-800/40 hover:bg-surface-800/30 transition-colors">
+                    <td class="px-5 py-2.5 font-mono font-medium text-white" th:text="${lib.library}"></td>
+                    <td class="px-5 py-2.5 font-mono text-surface-200/70" th:text="${lib.version}"></td>
+                    <td class="px-5 py-2.5 text-right font-mono text-surface-200/70" th:text="${lib.chunkCount}"></td>
+                    <td class="px-5 py-2.5 text-center">
+                        <span th:if="${lib.latest}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono bg-ok/10 text-ok border border-ok/20">
+                            <span class="w-1.5 h-1.5 rounded-full bg-ok"></span>
+                            latest
+                        </span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Recent Tasks -->
+    <div th:if="${recentTasks != null and !recentTasks.isEmpty()}" class="bg-surface-900 border border-surface-800/60 rounded-xl overflow-hidden animate-slide-up" style="animation-delay: 0.1s">
+        <div class="px-5 py-3.5 border-b border-surface-800/60 flex items-center justify-between">
+            <h2 class="font-semibold text-white text-sm">Recent Tasks</h2>
+            <a href="/web/tasks" class="text-xs text-accent/70 hover:text-accent transition-colors">View all &rarr;</a>
+        </div>
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-surface-200/40 text-xs uppercase tracking-wider">
+                    <th class="px-5 py-2.5 text-left font-medium">ID</th>
+                    <th class="px-5 py-2.5 text-left font-medium">Library</th>
+                    <th class="px-5 py-2.5 text-center font-medium">Status</th>
+                    <th class="px-5 py-2.5 text-right font-medium">Chunks</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="task : ${recentTasks}" class="border-t border-surface-800/40 hover:bg-surface-800/30 transition-colors">
+                    <td class="px-5 py-2.5">
+                        <a th:href="@{/web/tasks/{id}(id=${task.id})}" class="text-accent/70 hover:text-accent font-mono text-xs transition-colors" th:text="${task.id}"></a>
+                    </td>
+                    <td class="px-5 py-2.5 font-mono text-white/80" th:text="${task.library + ':' + task.version}"></td>
+                    <td class="px-5 py-2.5 text-center">
+                        <span th:if="${task.status.name() == 'RUNNING'}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono bg-run/10 text-run border border-run/20">
+                            <span class="w-1.5 h-1.5 rounded-full bg-run animate-pulse"></span>running
+                        </span>
+                        <span th:if="${task.status.name() == 'COMPLETED'}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono bg-ok/10 text-ok border border-ok/20">done</span>
+                        <span th:if="${task.status.name() == 'FAILED'}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono bg-fail/10 text-fail border border-fail/20">failed</span>
+                    </td>
+                    <td class="px-5 py-2.5 text-right font-mono text-surface-200/60" th:text="${task.chunksIndexed}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

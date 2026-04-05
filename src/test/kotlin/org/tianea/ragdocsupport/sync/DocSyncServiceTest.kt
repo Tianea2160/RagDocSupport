@@ -47,7 +47,7 @@ class DocSyncServiceTest {
 
         val chunks = listOf(aDocChunk(embedding = anEmbedding()))
         every {
-            docProcessor.processRecursive("mylib", "1.0", DocType.REFERENCE, listOf("https://custom.com/docs"), 2)
+            docProcessor.processRecursive("mylib", "1.0", DocType.REFERENCE, listOf("https://custom.com/docs"), 2, any())
         } returns chunks
 
         val result = service.register("mylib", "1.0", "https://custom.com/docs")
@@ -73,7 +73,7 @@ class DocSyncServiceTest {
             ),
         )
         every {
-            docProcessor.processRecursive(any(), any(), any(), any(), any())
+            docProcessor.processRecursive(any(), any(), any(), any(), any(), any())
         } returns listOf(aDocChunk(embedding = anEmbedding()))
 
         service.register("spring-boot", "4.0.0")
@@ -95,10 +95,10 @@ class DocSyncServiceTest {
             ),
         )
         every {
-            docProcessor.processRecursive("kafka", "3.7.0", DocType.REFERENCE, any(), 2)
+            docProcessor.processRecursive("kafka", "3.7.0", DocType.REFERENCE, any(), 2, any())
         } returns listOf(aDocChunk(embedding = anEmbedding()))
         every {
-            docProcessor.processRecursive("kafka", "3.7.0", DocType.MIGRATION, any(), 2)
+            docProcessor.processRecursive("kafka", "3.7.0", DocType.MIGRATION, any(), 2, any())
         } returns null
         justRun { vectorStore.upsert(any()) }
 
@@ -123,7 +123,7 @@ class DocSyncServiceTest {
         every { docSourceRepository.findByLibrary("lib-b") } returns null
 
         every {
-            docProcessor.processRecursive("lib-a", "1.0", DocType.REFERENCE, any(), 2)
+            docProcessor.processRecursive("lib-a", "1.0", DocType.REFERENCE, any(), 2, any())
         } returns listOf(aDocChunk(embedding = anEmbedding()), aDocChunk(embedding = anEmbedding()))
 
         val result = service.registerBulk(
@@ -156,12 +156,12 @@ class DocSyncServiceTest {
             ),
         )
         every {
-            docProcessor.processRecursive("spring-boot", "4.0.0", DocType.GUIDE, any(), 3)
+            docProcessor.processRecursive("spring-boot", "4.0.0", DocType.GUIDE, any(), 3, any())
         } returns listOf(aDocChunk(embedding = anEmbedding()))
 
         val result = service.register("spring-boot", "4.0.0")
 
         result.success shouldBe true
-        verify { docProcessor.processRecursive("spring-boot", "4.0.0", DocType.GUIDE, any(), 3) }
+        verify { docProcessor.processRecursive("spring-boot", "4.0.0", DocType.GUIDE, any(), 3, any()) }
     }
 }

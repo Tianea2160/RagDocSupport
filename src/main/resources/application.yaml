@@ -1,6 +1,19 @@
 spring:
   application:
     name: RagDocSupport
+  thymeleaf:
+    cache: false
+  mvc:
+    async:
+      request-timeout: 1800000
+  datasource:
+    url: jdbc:sqlite:data/tasks.db
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
   ai:
     mcp:
       server:

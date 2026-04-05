@@ -3,6 +3,7 @@ import org.springframework.boot.gradle.tasks.run.BootRun
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.spring)
+    alias(libs.plugins.kotlin.jpa)
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
     alias(libs.plugins.ktlint)
@@ -42,6 +43,15 @@ dependencies {
 
     // Qdrant Java Client
     implementation(libs.qdrant.client)
+
+    // Thymeleaf + htmx
+    implementation(libs.spring.boot.starter.thymeleaf)
+    implementation(libs.webjars.htmx)
+
+    // SQLite + JPA (task persistence)
+    implementation(libs.spring.boot.starter.data.jpa)
+    implementation(libs.sqlite.jdbc)
+    implementation(libs.hibernate.community.dialects)
 
     // HTML Parsing
     implementation(libs.jsoup)

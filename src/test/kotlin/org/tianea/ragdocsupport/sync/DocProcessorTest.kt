@@ -36,7 +36,7 @@ class DocProcessorTest {
     @Test
     fun `processSingle returns embedded chunks on success`() {
         val document = Jsoup.parse("<html><body><p>Hello</p></body></html>")
-        every { crawler.crawlWithFallback(any()) } returns CrawlResult(
+        every { crawler.crawlWithFallback(any(), any()) } returns CrawlResult(
             document = document,
             resolvedUrl = "https://docs.example.com/ref",
             failedUrls = emptyList(),
@@ -63,7 +63,7 @@ class DocProcessorTest {
 
     @Test
     fun `processSingle returns null when crawl fails`() {
-        every { crawler.crawlWithFallback(any()) } returns CrawlResult(
+        every { crawler.crawlWithFallback(any(), any()) } returns CrawlResult(
             document = null,
             resolvedUrl = null,
             failedUrls = listOf("url1"),
@@ -82,7 +82,7 @@ class DocProcessorTest {
     @Test
     fun `processSingle returns null when content is blank`() {
         val document = Jsoup.parse("<html><body></body></html>")
-        every { crawler.crawlWithFallback(any()) } returns CrawlResult(
+        every { crawler.crawlWithFallback(any(), any()) } returns CrawlResult(
             document = document,
             resolvedUrl = "https://example.com",
             failedUrls = emptyList(),
@@ -102,7 +102,7 @@ class DocProcessorTest {
     @Test
     fun `processRecursive returns embedded chunks from tree crawl`() {
         val document = Jsoup.parse("<html><body><p>Page</p></body></html>")
-        every { treeCrawler.crawlTree("https://docs.example.com", 2) } returns listOf(
+        every { treeCrawler.crawlTree("https://docs.example.com", 2, any()) } returns listOf(
             TreeCrawlResult(document, "https://docs.example.com", 0),
             TreeCrawlResult(document, "https://docs.example.com/sub", 1),
         )
@@ -126,7 +126,7 @@ class DocProcessorTest {
 
     @Test
     fun `processRecursive returns null when all seed URLs fail`() {
-        every { treeCrawler.crawlTree(any(), any()) } returns emptyList()
+        every { treeCrawler.crawlTree(any(), any(), any()) } returns emptyList()
 
         val result = processor.processRecursive(
             "spring-boot",
@@ -142,8 +142,8 @@ class DocProcessorTest {
     @Test
     fun `processRecursive tries next seed URL on empty result`() {
         val document = Jsoup.parse("<html><body><p>OK</p></body></html>")
-        every { treeCrawler.crawlTree("https://fail.com", 2) } returns emptyList()
-        every { treeCrawler.crawlTree("https://ok.com", 2) } returns listOf(
+        every { treeCrawler.crawlTree("https://fail.com", 2, any()) } returns emptyList()
+        every { treeCrawler.crawlTree("https://ok.com", 2, any()) } returns listOf(
             TreeCrawlResult(document, "https://ok.com", 0),
         )
         every { converter.convert(document) } returns "## OK\nContent"
