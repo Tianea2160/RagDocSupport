@@ -2,12 +2,12 @@ package org.tianea.ragdocsupport.crawler
 
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
-import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
+import org.tianea.ragdocsupport.config.CrawlerProperties
 
 class DocCrawlerTest {
-    private val crawler = DocCrawler()
+    private val crawler = DocCrawler(CrawlerProperties())
 
     @Test
     fun `crawl returns null for invalid URL`() {

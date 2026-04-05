@@ -58,7 +58,8 @@ class DocProcessor(
             }
 
             log.info(
-                "Tree crawl for $library:$version ($docType) returned ${treeResults.size} pages from $seedUrl",
+                "Tree crawl for $library:$version ($docType) returned " +
+                    "${treeResults.size} pages from $seedUrl",
             )
 
             val preEmbedChunks = treeResults.flatMap { result ->

@@ -14,7 +14,6 @@ import org.tianea.ragdocsupport.core.port.DocSourceRepository
 import org.tianea.ragdocsupport.core.port.LibraryIndexInfo
 import org.tianea.ragdocsupport.core.port.VectorStore
 import org.tianea.ragdocsupport.fixture.aDocChunk
-import org.tianea.ragdocsupport.fixture.aDocMetadata
 import org.tianea.ragdocsupport.fixture.aDocSource
 import org.tianea.ragdocsupport.fixture.anEmbedding
 

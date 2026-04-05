@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-@EnableConfigurationProperties(QdrantProperties::class)
+@EnableConfigurationProperties(QdrantProperties::class, CrawlerProperties::class)
 class AppConfig {
     @Bean
     fun qdrantClient(properties: QdrantProperties): QdrantClient = QdrantClient(

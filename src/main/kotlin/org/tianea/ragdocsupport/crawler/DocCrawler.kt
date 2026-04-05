@@ -4,25 +4,29 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import org.tianea.ragdocsupport.config.CrawlerProperties
+import kotlin.time.measureTimedValue
 
 @Component
-class DocCrawler {
+class DocCrawler(
+    private val crawlerProperties: CrawlerProperties,
+) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    fun crawl(url: String): Document? = try {
-        log.info("Crawling: $url")
-        val document =
-            Jsoup
-                .connect(url)
-                .timeout(CrawlerConstants.TIMEOUT_MS)
-                .followRedirects(true)
-                .get()
-
-        log.info("Resolved URL: ${document.location()}")
-        document
-    } catch (e: Exception) {
-        log.error("Failed to crawl $url: ${e.message}")
-        null
+    fun crawl(url: String): Document? {
+        val (result, duration) = measureTimedValue {
+            runCatching {
+                Jsoup
+                    .connect(url)
+                    .timeout(crawlerProperties.timeoutMs)
+                    .followRedirects(true)
+                    .get()
+            }
+        }
+        return result
+            .onSuccess { log.info("GET $url -> ${it.location()} ($duration)") }
+            .onFailure { log.warn("GET $url -> FAILED ($duration): ${it.message}") }
+            .getOrNull()
     }
 
     fun crawlWithFallback(urls: List<String>): CrawlResult {

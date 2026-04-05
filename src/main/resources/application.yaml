@@ -20,3 +20,8 @@ qdrant:
   host: localhost
   port: 6334
   collection-name: doc-chunks
+
+crawler:
+  sleep-time-ms: 100
+  timeout-ms: 30000
+  retry-times: 2

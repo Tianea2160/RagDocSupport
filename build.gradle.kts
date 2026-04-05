@@ -44,10 +44,6 @@ dependencies {
     // HTML Parsing
     implementation(libs.jsoup)
 
-    // Web Crawling
-    implementation(libs.webmagic.core)
-    implementation(libs.webmagic.extension)
-
     // YAML parsing for doc-sources.yml
     implementation(libs.jackson.dataformat.yaml)
 
@@ -78,6 +74,18 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
     }
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.compilerArgs.add("--enable-preview")
+}
+
+tasks.withType<Test>().configureEach {
+    jvmArgs("--enable-preview")
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    jvmArgs("--enable-preview")
 }
 
 val benchmarkTask = tasks.register<Test>("benchmark") {

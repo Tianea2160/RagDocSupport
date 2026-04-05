@@ -3,10 +3,14 @@ package org.tianea.ragdocsupport.sync
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.tianea.ragdocsupport.core.model.Dependency
+import org.tianea.ragdocsupport.core.model.DocChunk
 import org.tianea.ragdocsupport.core.model.DocType
 import org.tianea.ragdocsupport.core.model.DocUrlPattern
 import org.tianea.ragdocsupport.core.port.DocSourceRepository
 import org.tianea.ragdocsupport.core.port.VectorStore
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.StructuredTaskScope
+import java.util.concurrent.StructuredTaskScope.Joiner
 
 @Service
 class DocSyncService(
@@ -38,26 +42,45 @@ class DocSyncService(
 
         vectorStore.deleteByLibraryAndVersion(library, version)
 
+        val docTypeResults = ConcurrentLinkedQueue<DocTypeProcessResult>()
+
+        StructuredTaskScope.open(Joiner.awaitAll<Unit>()).use { scope ->
+            for ((docType, pattern, candidateUrls) in urlCandidates) {
+                scope.fork<Unit>(
+                    Runnable {
+                        log.info(
+                            "Processing $library:$version ($docType) " +
+                                "with ${candidateUrls.size} candidate URL(s)",
+                        )
+                        val chunks =
+                            if (pattern.recursive) {
+                                docProcessor.processRecursive(
+                                    library,
+                                    version,
+                                    docType,
+                                    candidateUrls,
+                                    pattern.maxDepth,
+                                )
+                            } else {
+                                docProcessor.processSingle(library, version, docType, candidateUrls)
+                            }
+                        docTypeResults.add(DocTypeProcessResult(docType, candidateUrls, chunks))
+                    },
+                )
+            }
+            scope.join()
+        }
+
         var totalChunks = 0
         val failedDocTypes = mutableListOf<FailedDocType>()
 
-        for ((docType, pattern, candidateUrls) in urlCandidates) {
-            log.info("Processing $library:$version ($docType) with ${candidateUrls.size} candidate URL(s)")
-
-            val chunks =
-                if (pattern.recursive) {
-                    docProcessor.processRecursive(library, version, docType, candidateUrls, pattern.maxDepth)
-                } else {
-                    docProcessor.processSingle(library, version, docType, candidateUrls)
-                }
-
-            if (chunks == null) {
-                failedDocTypes.add(FailedDocType(docType, candidateUrls))
+        for (result in docTypeResults) {
+            if (result.chunks == null) {
+                failedDocTypes.add(FailedDocType(result.docType, result.urls))
                 continue
             }
-
-            vectorStore.upsert(chunks)
-            totalChunks += chunks.size
+            vectorStore.upsert(result.chunks)
+            totalChunks += result.chunks.size
         }
 
         return RegisterResult(
@@ -96,6 +119,12 @@ class DocSyncService(
         }
     }
 }
+
+private data class DocTypeProcessResult(
+    val docType: DocType,
+    val urls: List<String>,
+    val chunks: List<DocChunk>?,
+)
 
 data class DocTypeCandidates(
     val docType: DocType,

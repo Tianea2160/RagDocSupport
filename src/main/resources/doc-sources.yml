@@ -81,7 +81,7 @@ sources:
 
   liquibase:
     group: "org.liquibase"
-    artifact: "liquibase-core
+    artifact: "liquibase-core"
     docs:
       reference:
         url: "https://docs.liquibase.com/change-types/home.html"

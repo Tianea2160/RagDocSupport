@@ -7,7 +7,6 @@ ktlint-gradle = "14.2.0"
 ktlint-core = "1.8.0"
 qdrant = "1.17.0"
 jsoup = "1.22.1"
-webmagic = "1.0.3"
 mockk = "1.14.9"
 kotest = "6.0.7"
 
@@ -23,8 +22,6 @@ spring-ai-starter-model-ollama = { module = "org.springframework.ai:spring-ai-st
 spring-ai-bom = { module = "org.springframework.ai:spring-ai-bom", version.ref = "spring-ai" }
 qdrant-client = { module = "io.qdrant:client", version.ref = "qdrant" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
-webmagic-core = { module = "us.codecraft:webmagic-core", version.ref = "webmagic" }
-webmagic-extension = { module = "us.codecraft:webmagic-extension", version.ref = "webmagic" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 netty-resolver-dns-native-macos = { module = "io.netty:netty-resolver-dns-native-macos" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
