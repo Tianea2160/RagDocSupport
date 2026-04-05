@@ -46,6 +46,7 @@ dependencies {
 
     // YAML parsing for doc-sources.yml
     implementation(libs.jackson.dataformat.yaml)
+    implementation(libs.spring.boot.starter.actuator)
 
     // Netty native DNS resolver for macOS Apple Silicon
     runtimeOnly(libs.netty.resolver.dns.native.macos) {
