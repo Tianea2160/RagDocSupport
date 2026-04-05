@@ -63,6 +63,8 @@ docs-register / docs-register-bulk 호출
 - **`mcp`** — 5개 MCP 도구 (`@McpTool` 어노테이션 기반): docs-register, docs-register-bulk, docs-search, docs-compare, docs-list
 - **`api`** — REST API 컨트롤러 (DocsController). MCP와 동일 기능을 HTTP로 제공: `/api/docs/register`, `/api/docs/register/bulk`, `/api/docs/search`, `/api/docs/list`, `/api/docs/compare`
 - **`config`** — Spring Bean 설정, QdrantProperties + CrawlerProperties (@ConfigurationProperties)
+- **`web`** — Thymeleaf + htmx 웹 대시보드. DashboardController(`/`, `/web`), RegisterController(SSE 실시간 로그), SearchController, TaskController
+- **`web/task`** — JPA 기반 Task 영속화 (SQLite). TaskEntity, TaskLogEntity, TaskService, TaskRepository
 
 ### Qdrant Integration
 
@@ -91,6 +93,9 @@ JUnit 5 + kotest assertions + mockk. `java-test-fixtures` 플러그인으로 `sr
 - Java 25 StructuredTaskScope (JEP 505, `--enable-preview` 필요) — virtual thread 기반 병렬 등록 (라이브러리/doc type 단위). 크롤링은 순차
 - StructuredTaskScope Kotlin 사용 시 `scope.fork<Unit>(Runnable { })` 형태 필수. `scope.fork { }` 는 Callable/Runnable SAM 변환 모호성 에러 발생
 - kotlinx-coroutines 미사용 — 모든 병렬 처리는 StructuredTaskScope + virtual thread. 테스트에서 `coEvery`/`coVerify` 사용 금지
+- Thymeleaf (SSR) + htmx 2.0.8 (부분 갱신) + htmx-ext-sse (실시간 로그 스트리밍) + Tailwind CSS (Play CDN)
+- SQLite + JPA (task 영속화). `kotlin-jpa` 플러그인 필수 — Hibernate가 no-arg 생성자를 요구하므로
+- `data/` 디렉토리에 SQLite DB 파일 저장 (.gitignore 등록됨). 디렉토리가 없으면 수동 생성 필요: `mkdir -p data`
 
 ## Configuration
 
@@ -105,12 +110,16 @@ JUnit 5 + kotest assertions + mockk. `java-test-fixtures` 플러그인으로 `sr
 - `registerBulk()`: 라이브러리별 StructuredTaskScope 병렬 (서로 다른 호스트 → rate limit 안전)
 - `register()`: doc type별 StructuredTaskScope 병렬 (2~3개 수준)
 - `DocTreeCrawler`: 순차 BFS (동일 호스트 보호). virtual thread 중첩 시 pthread 한계(EAGAIN) 발생하므로 크롤러 내부에서 StructuredTaskScope 사용 금지
+- `ProgressListener`: fun interface 콜백. `register()`/`registerBulk()` → `DocProcessor` → `DocTreeCrawler`/`DocCrawler`에 전파. default parameter = `NOOP`이므로 기존 API/MCP 호출자에 영향 없음
+- 웹 등록 시 `SseEmitter` + virtual thread로 실시간 스트리밍. SSE timeout 30분 (`spring.mvc.async.request-timeout`)
 - `measureTime`/`measureTimedValue` 사용하여 Duration 기반 타이밍 측정 (System.currentTimeMillis() 대신)
 
 ## Known Limitations
 
 - `DocTreeCrawler` 스코프: seed URL 경로 하위만 탐색. 형제/상위 경로 링크는 무시됨. seed URL을 적절한 상위 경로로 지정해야 함
 - `_print` 등 프린트용 페이지가 있는 사이트는 중복 인덱싱 발생 가능 (필터링 미구현)
+- `hibernate-community-dialects` 버전은 Spring Boot BOM에 포함되지 않음 — Hibernate core 버전과 수동 일치 필요 (Spring Boot 4.0.5 → Hibernate 7.2.7.Final)
+- `templates/index.html` 존재 시 Spring Boot WelcomePageHandlerMapping이 `/`에 자동 매핑됨 → 컨트롤러를 거치지 않으므로 model 속성 null. `@GetMapping("/")` 명시 필요
 
 ## Debugging
 

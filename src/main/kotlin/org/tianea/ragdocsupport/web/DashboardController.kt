@@ -11,7 +11,7 @@ class DashboardController(
     private val vectorStore: VectorStore,
     private val taskService: TaskService,
 ) {
-    @GetMapping("/web")
+    @GetMapping("/", "/web")
     fun index(model: Model): String {
         model.addAttribute("libraries", vectorStore.listIndexedLibraries())
         model.addAttribute("runningTasks", taskService.findRunning())

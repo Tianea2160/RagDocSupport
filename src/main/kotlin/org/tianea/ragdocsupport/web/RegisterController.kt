@@ -118,12 +118,15 @@ class RegisterController(
                     }
                 }
                 val summary =
-                    "<div class=\"p-4 bg-green-50 border border-green-200 rounded-lg\">" +
-                        "<p class=\"font-semibold text-green-800\">Bulk registration complete</p>" +
-                        "<p class=\"text-sm text-green-700\">" +
+                    "<div class=\"p-5 bg-ok/5 border border-ok/30 rounded-xl mt-2 animate-slide-up\">" +
+                        "<div class=\"flex items-center gap-2 mb-2\">" +
+                        "<span class=\"text-lg text-ok\">&#x2713;</span>" +
+                        "<p class=\"font-semibold text-ok\">Bulk registration complete</p>" +
+                        "</div>" +
+                        "<p class=\"text-sm text-surface-200/60 font-mono\">" +
                         "${result.successCount}/${result.entries.size} succeeded, " +
                         "${result.totalChunks} total chunks</p>" +
-                        "<a href=\"/web/tasks\" class=\"text-sm text-blue-600 hover:underline\">View tasks</a>" +
+                        "<a href=\"/web/tasks\" class=\"text-sm text-accent/70 hover:text-accent font-mono mt-3 inline-block transition-colors\">View tasks &rarr;</a>" +
                         "</div>"
                 trySend(emitter, closed, "complete", summary)
             } catch (e: Exception) {
@@ -157,23 +160,23 @@ class RegisterController(
 
         private val TYPE_COLORS =
             mapOf(
-                "INFO" to "text-gray-300",
-                "CRAWL" to "text-blue-400",
+                "INFO" to "text-surface-200/50",
+                "CRAWL" to "text-run",
                 "CHUNK" to "text-purple-400",
-                "EMBED" to "text-cyan-400",
-                "UPSERT" to "text-green-400",
-                "WARN" to "text-yellow-400",
-                "COMPLETE" to "text-green-400",
-                "ERROR" to "text-red-400",
+                "EMBED" to "text-accent",
+                "UPSERT" to "text-ok",
+                "WARN" to "text-warn",
+                "COMPLETE" to "text-ok",
+                "ERROR" to "text-fail",
             )
 
         fun renderLogLine(event: ProgressEvent): String {
             val time = LocalTime.now().format(TIME_FORMAT)
-            val colorClass = TYPE_COLORS[event.type.name] ?: "text-gray-300"
+            val colorClass = TYPE_COLORS[event.type.name] ?: "text-surface-200/50"
             return "<div class=\"flex gap-2\">" +
-                "<span class=\"text-gray-500\">$time</span>" +
-                "<span class=\"$colorClass\">[${event.type}]</span>" +
-                "<span class=\"text-gray-200\">${escapeHtml(event.message)}</span>" +
+                "<span class=\"text-surface-200/30 shrink-0\">$time</span>" +
+                "<span class=\"$colorClass shrink-0\">[${event.type}]</span>" +
+                "<span class=\"text-surface-200/70\">${escapeHtml(event.message)}</span>" +
                 "</div>"
         }
 
@@ -181,35 +184,42 @@ class RegisterController(
             result: RegisterResult,
             taskId: String,
         ): String {
-            val statusClass = if (result.success) "bg-green-50 border-green-200" else "bg-red-50 border-red-200"
-            val textClass = if (result.success) "text-green-800" else "text-red-800"
-            val subTextClass = if (result.success) "text-green-700" else "text-red-700"
+            val (borderColor, bgColor, textColor, icon) =
+                if (result.success) {
+                    listOf("border-ok/30", "bg-ok/5", "text-ok", "&#x2713;")
+                } else {
+                    listOf("border-fail/30", "bg-fail/5", "text-fail", "&#x2717;")
+                }
             val statusText = if (result.success) "Registration complete" else "Registration failed"
-            return "<div class=\"p-4 $statusClass border rounded-lg\">" +
-                "<p class=\"font-semibold $textClass\">$statusText</p>" +
-                "<p class=\"text-sm $subTextClass\">${result.chunksIndexed} chunks indexed</p>" +
+            return "<div class=\"p-5 $bgColor border $borderColor rounded-xl mt-2 animate-slide-up\">" +
+                "<div class=\"flex items-center gap-2 mb-2\">" +
+                "<span class=\"text-lg $textColor\">$icon</span>" +
+                "<p class=\"font-semibold $textColor\">${escapeHtml(statusText)}</p>" +
+                "</div>" +
+                "<p class=\"text-sm text-surface-200/60 font-mono\">${result.chunksIndexed} chunks indexed</p>" +
                 (
                     if (result.failedDocTypes.isNotEmpty()) {
-                        "<p class=\"text-sm text-red-600 mt-1\">Failed: ${result.failedDocTypes.joinToString { it.docType.name }}</p>"
+                        "<p class=\"text-sm text-fail/70 mt-1 font-mono\">Failed: ${escapeHtml(result.failedDocTypes.joinToString { it.docType.name })}</p>"
                     } else {
                         ""
                     }
                     ) +
-                "<a href=\"/web/tasks/$taskId\" class=\"text-sm text-blue-600 hover:underline mt-2 inline-block\">View task details</a>" +
+                "<a href=\"/web/tasks/$taskId\" class=\"text-sm text-accent/70 hover:text-accent font-mono mt-3 inline-block transition-colors\">View task &rarr;</a>" +
                 "</div>"
         }
 
-        fun renderError(e: Exception): String =
-            "<div class=\"p-4 bg-red-50 border border-red-200 rounded-lg\">" +
-                "<p class=\"font-semibold text-red-800\">Error</p>" +
-                "<p class=\"text-sm text-red-700\">${escapeHtml(e.message ?: "Unknown error")}</p>" +
-                "</div>"
+        fun renderError(e: Exception): String = "<div class=\"p-5 bg-fail/5 border border-fail/30 rounded-xl mt-2\">" +
+            "<div class=\"flex items-center gap-2 mb-2\">" +
+            "<span class=\"text-lg text-fail\">&#x2717;</span>" +
+            "<p class=\"font-semibold text-fail\">Error</p>" +
+            "</div>" +
+            "<p class=\"text-sm text-surface-200/60 font-mono\">${escapeHtml(e.message ?: "Unknown error")}</p>" +
+            "</div>"
 
-        private fun escapeHtml(text: String): String =
-            text
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-        }
+        private fun escapeHtml(text: String): String = text
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+    }
 }
