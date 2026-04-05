@@ -1,3 +1,5 @@
+import org.springframework.boot.gradle.tasks.run.BootRun
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.spring)
@@ -85,7 +87,7 @@ tasks.withType<Test>().configureEach {
     jvmArgs("--enable-preview")
 }
 
-tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+tasks.named<BootRun>("bootRun") {
     jvmArgs("--enable-preview")
 }
 
