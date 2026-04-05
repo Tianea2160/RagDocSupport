@@ -3,6 +3,7 @@ package org.tianea.ragdocsupport.mcp
 import org.springframework.ai.mcp.annotation.McpTool
 import org.springframework.ai.mcp.annotation.McpToolParam
 import org.springframework.stereotype.Component
+import org.tianea.ragdocsupport.sync.BulkRegisterRequest
 import org.tianea.ragdocsupport.sync.DocSyncService
 
 @Component
@@ -34,6 +35,35 @@ Use this when you need documentation for a library that isn't indexed yet.""",
                     appendLine("  - ${failed.docType}: tried ${failed.triedUrls.joinToString(", ")}")
                 }
                 append("Tip: You can retry with an explicit docUrl parameter if the URL pattern is outdated.")
+            }
+        }
+    }
+
+    @McpTool(
+        description = """Register and index documentation for multiple libraries in parallel.
+Each library is processed concurrently for faster bulk indexing.
+Input format: 'library:version' entries separated by commas.
+Example: 'spring-boot:4.0.4, jooq:3.20.11, postgresql:42.7.7'""",
+    )
+    fun docsRegisterBulk(
+        @McpToolParam(
+            description = "Comma-separated list of 'library:version' pairs (e.g., 'spring-boot:4.0.4, jooq:3.20.11')",
+        ) libraries: String,
+    ): String {
+        val requests = libraries.split(",").map { entry ->
+            val (library, version) = entry.trim().split(":")
+            BulkRegisterRequest(library.trim(), version.trim())
+        }
+
+        val result = syncService.registerBulk(requests)
+        return buildString {
+            appendLine("Bulk registration complete: ${result.successCount}/${result.entries.size} succeeded, ${result.totalChunks} total chunks.")
+            for (entry in result.entries) {
+                val status = if (entry.result.success) "OK" else "FAIL"
+                appendLine("  [$status] ${entry.library}:${entry.version} — ${entry.result.chunksIndexed} chunks")
+                for (failed in entry.result.failedDocTypes) {
+                    appendLine("    - ${failed.docType}: tried ${failed.triedUrls.joinToString(", ")}")
+                }
             }
         }
     }

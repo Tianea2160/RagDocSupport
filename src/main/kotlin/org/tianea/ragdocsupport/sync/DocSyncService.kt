@@ -91,15 +91,22 @@ class DocSyncService(
     }
 
     fun registerBulk(libraries: List<BulkRegisterRequest>): BulkRegisterResult {
-        val results = mutableListOf<BulkRegisterEntry>()
+        val results = ConcurrentLinkedQueue<BulkRegisterEntry>()
 
-        for (request in libraries) {
-            log.info("Bulk registering ${request.library}:${request.version}")
-            val result = register(request.library, request.version, request.docUrl)
-            results.add(BulkRegisterEntry(request.library, request.version, result))
+        StructuredTaskScope.open(Joiner.awaitAll<Unit>()).use { scope ->
+            for (request in libraries) {
+                scope.fork<Unit>(
+                    Runnable {
+                        log.info("Bulk registering ${request.library}:${request.version}")
+                        val result = register(request.library, request.version, request.docUrl)
+                        results.add(BulkRegisterEntry(request.library, request.version, result))
+                    },
+                )
+            }
+            scope.join()
         }
 
-        return BulkRegisterResult(results)
+        return BulkRegisterResult(results.toList())
     }
 
     private fun resolveUrlCandidates(

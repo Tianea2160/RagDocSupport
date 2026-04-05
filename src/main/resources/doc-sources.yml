@@ -75,7 +75,7 @@ sources:
     artifact: "jooq"
     docs:
       reference:
-        url: "https://www.jooq.org/doc/latest/manual/"
+        url: "https://www.jooq.org/doc/{majorMinor}/manual/"
         recursive: true
         max-depth: 2
 

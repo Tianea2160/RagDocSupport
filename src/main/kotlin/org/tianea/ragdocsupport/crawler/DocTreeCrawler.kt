@@ -6,10 +6,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.tianea.ragdocsupport.config.CrawlerProperties
 import java.net.URI
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.StructuredTaskScope
-import java.util.concurrent.StructuredTaskScope.Joiner
+import kotlin.time.measureTime
 import kotlin.time.measureTimedValue
 
 @Component
@@ -24,48 +21,39 @@ class DocTreeCrawler(
     ): List<TreeCrawlResult> {
         log.info("Starting tree crawl from: $seedUrl (maxDepth=$maxDepth)")
 
-        val crawlStart = System.currentTimeMillis()
         val scopePrefix = extractScopePrefix(seedUrl)
-        val visited = ConcurrentHashMap.newKeySet<String>()
-        val results = ConcurrentLinkedQueue<TreeCrawlResult>()
+        val visited = mutableSetOf(normalizeUrl(seedUrl))
+        val results = mutableListOf<TreeCrawlResult>()
 
-        visited.add(normalizeUrl(seedUrl))
         var currentLevel = listOf(seedUrl)
 
-        for (depth in 0..maxDepth) {
-            if (currentLevel.isEmpty()) break
+        val totalDuration = measureTime {
+            for (depth in 0..maxDepth) {
+                if (currentLevel.isEmpty()) break
 
-            val levelStart = System.currentTimeMillis()
-            val levelSize = currentLevel.size
-            val nextLevel = ConcurrentLinkedQueue<String>()
+                val levelSize = currentLevel.size
+                val nextLevel = mutableListOf<String>()
 
-            StructuredTaskScope.open(Joiner.awaitAll<Unit>()).use { scope ->
-                for (url in currentLevel) {
-                    scope.fork<Unit>(
-                        Runnable {
-                            crawlPage(url, scopePrefix, depth, maxDepth, visited, results, nextLevel)
-                        },
-                    )
+                val levelDuration = measureTime {
+                    for (url in currentLevel) {
+                        crawlPage(url, scopePrefix, depth, maxDepth, visited, results, nextLevel)
+                    }
                 }
-                scope.join()
+                log.info(
+                    "Depth $depth complete: $levelSize URLs fetched in $levelDuration " +
+                        "(${nextLevel.size} links discovered, ${results.size} pages total)",
+                )
+
+                currentLevel = nextLevel
             }
-
-            val levelElapsed = System.currentTimeMillis() - levelStart
-            log.info(
-                "Depth $depth complete: $levelSize URLs fetched in ${levelElapsed}ms " +
-                    "(${nextLevel.size} links discovered, ${results.size} pages total)",
-            )
-
-            currentLevel = nextLevel.toList()
         }
 
-        val totalElapsed = System.currentTimeMillis() - crawlStart
-        val avgPerPage = if (results.isNotEmpty()) totalElapsed / results.size else 0
+        val avgPerPage = if (results.isNotEmpty()) totalDuration / results.size else totalDuration
         log.info(
             "Tree crawl complete: ${results.size} pages from $seedUrl " +
-                "in ${totalElapsed}ms (avg ${avgPerPage}ms/page)",
+                "in $totalDuration (avg $avgPerPage/page)",
         )
-        return results.toList()
+        return results
     }
 
     private fun crawlPage(
@@ -74,8 +62,8 @@ class DocTreeCrawler(
         depth: Int,
         maxDepth: Int,
         visited: MutableSet<String>,
-        results: ConcurrentLinkedQueue<TreeCrawlResult>,
-        nextLevel: ConcurrentLinkedQueue<String>,
+        results: MutableList<TreeCrawlResult>,
+        nextLevel: MutableList<String>,
     ) {
         val document = fetchWithRetry(url) ?: return
         results.add(TreeCrawlResult(document, url, depth))

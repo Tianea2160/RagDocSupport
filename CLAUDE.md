@@ -35,6 +35,7 @@ ollama pull nomic-embed-text   # 최초 1회
 
 ktlint (intellij_idea 코드 스타일). `.editorconfig`에 설정됨. Git pre-commit hook으로 커밋 시 자동 검사.
 wildcard import 금지 (`standard:no-wildcard-imports`).
+HTTP 요청 로깅 패턴: `measureTimedValue` + `runCatching`으로 타이밍 측정. 로그 형식: `GET $url -> $resolvedUrl ($duration)`
 
 ## Architecture
 
@@ -43,9 +44,9 @@ Hexagonal architecture (Ports & Adapters) 기반. Spring AI MCP Server로 Claude
 ### Data Flow
 
 ```
-docs-register 호출
-  → DocSyncService: doc-sources.yml에서 URL 결정
-  → DocCrawler (단일 페이지) 또는 DocTreeCrawler (recursive, WebMagic 기반 트리 탐색)
+docs-register / docs-register-bulk 호출
+  → DocSyncService: doc-sources.yml에서 URL 결정 (bulk 시 라이브러리 단위 병렬)
+  → DocCrawler (단일 페이지) 또는 DocTreeCrawler (recursive, Jsoup 순차 BFS)
   → HtmlToMarkdownConverter: 마크다운 변환
   → DocChunker: 헤더 기반 청킹 (max 1000자, 120자 overlap)
   → EmbeddingModel (Ollama nomic-embed-text, 768차원)
@@ -56,11 +57,12 @@ docs-register 호출
 
 - **`core/model`** — 도메인 모델 (Dependency, DocChunk, DocSource). DocType enum: REFERENCE, MIGRATION, CHANGELOG, GUIDE
 - **`core/port`** — 인터페이스 (VectorStore, DocSourceRepository). 구현체 교체 용이
-- **`crawler`** — 크롤링 파이프라인. DocCrawler(단일) / DocTreeCrawler(재귀) → HtmlToMarkdownConverter → DocChunker. DocPageProcessor/DocResultPipeline은 WebMagic 구현체 (internal). CrawlerConstants에 공유 상수. Jsoup은 HTTP 301/302만 follow, JS 리다이렉트 미지원
+- **`crawler`** — 크롤링 파이프라인. DocCrawler(단일) / DocTreeCrawler(재귀, 순차 BFS) → HtmlToMarkdownConverter → DocChunker. Jsoup으로 HTTP 요청, 301/302만 follow (JS 리다이렉트 미지원). CrawlerProperties로 timeout/sleep/retry 설정 외부화
 - **`store`** — QdrantVectorStore(오케스트레이션) + QdrantFilterBuilder(필터 구성) + DocChunkPayloadMapper(payload 변환, 필드명 상수 정의). Spring AI VectorStore 미사용 (하이브리드 검색, payload 업데이트 등 기능 제한으로 인해)
 - **`sync`** — DocSyncService(오케스트레이션, URL 해석) + DocProcessor(크롤링→변환→청킹→임베딩 파이프라인)
-- **`mcp`** — 4개 MCP 도구 (`@McpTool` 어노테이션 기반): docs-register, docs-search, docs-compare, docs-list
-- **`config`** — Spring Bean 설정, QdrantProperties (@ConfigurationProperties)
+- **`mcp`** — 5개 MCP 도구 (`@McpTool` 어노테이션 기반): docs-register, docs-register-bulk, docs-search, docs-compare, docs-list
+- **`api`** — REST API 컨트롤러 (DocsController). MCP와 동일 기능을 HTTP로 제공: `/api/docs/register`, `/api/docs/register/bulk`, `/api/docs/search`, `/api/docs/list`, `/api/docs/compare`
+- **`config`** — Spring Bean 설정, QdrantProperties + CrawlerProperties (@ConfigurationProperties)
 
 ### Qdrant Integration
 
@@ -86,13 +88,24 @@ JUnit 5 + kotest assertions + mockk. `java-test-fixtures` 플러그인으로 `sr
 - Spring AI 2.0.0-M4 (milestone repo 필요)
 - Qdrant (gRPC port 6334) + Ollama (port 11434)
 - Jsoup, Jackson YAML
+- Java 25 StructuredTaskScope (JEP 505, `--enable-preview` 필요) — virtual thread 기반 병렬 등록 (라이브러리/doc type 단위). 크롤링은 순차
+- StructuredTaskScope Kotlin 사용 시 `scope.fork<Unit>(Runnable { })` 형태 필수. `scope.fork { }` 는 Callable/Runnable SAM 변환 모호성 에러 발생
+- kotlinx-coroutines 미사용 — 모든 병렬 처리는 StructuredTaskScope + virtual thread. 테스트에서 `coEvery`/`coVerify` 사용 금지
 
 ## Configuration
 
 - `gradle/libs.versions.toml` — 모든 의존성/플러그인 버전 관리 (Gradle Version Catalog)
-- `application.yaml` — 서버 포트, MCP 서버, Qdrant, Ollama 설정
+- `application.yaml` — 서버 포트, MCP 서버, Qdrant, Ollama, Crawler 설정
 - `doc-sources.yml` — 라이브러리별 문서 URL 템플릿 (`{version}`, `{major}`, `{majorMinor}` 플레이스홀더). `urls` 배열로 fallback URL 지원
 - `{majorMinor}`는 점 포함 형태(`4.0`)로 치환됨. 점 없는 형태(`40`)가 필요한 사이트(Kafka 등)는 `docUrl` 직접 지정 필요
+
+## Concurrency Strategy
+
+병렬 처리는 라이브러리 단위에서만 수행. 페이지 크롤링은 순차.
+- `registerBulk()`: 라이브러리별 StructuredTaskScope 병렬 (서로 다른 호스트 → rate limit 안전)
+- `register()`: doc type별 StructuredTaskScope 병렬 (2~3개 수준)
+- `DocTreeCrawler`: 순차 BFS (동일 호스트 보호). virtual thread 중첩 시 pthread 한계(EAGAIN) 발생하므로 크롤러 내부에서 StructuredTaskScope 사용 금지
+- `measureTime`/`measureTimedValue` 사용하여 Duration 기반 타이밍 측정 (System.currentTimeMillis() 대신)
 
 ## Known Limitations
 
