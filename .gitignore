@@ -44,4 +44,3 @@ out/
 ### SQLite data ###
 data/*
 !data/.gitkeep
-!data/tasks.db
