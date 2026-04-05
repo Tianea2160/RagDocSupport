@@ -42,4 +42,6 @@ out/
 .mcp.json
 
 ### SQLite data ###
-data/
+data/*
+!data/.gitkeep
+!data/tasks.db
