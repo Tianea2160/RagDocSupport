@@ -1,0 +1,108 @@
+queries:
+  # Spring Boot
+  - query: "How to configure custom auto-configuration in Spring Boot?"
+    library: "spring-boot"
+    category: "configuration"
+    difficulty: "medium"
+
+  - query: "Spring Boot actuator health endpoint customization"
+    library: "spring-boot"
+    category: "monitoring"
+    difficulty: "easy"
+
+  - query: "How to externalize configuration with @ConfigurationProperties?"
+    library: "spring-boot"
+    category: "configuration"
+    difficulty: "easy"
+
+  # Spring Security
+  - query: "How to configure OAuth2 resource server with JWT in Spring Security?"
+    library: "spring-security"
+    category: "auth"
+    difficulty: "hard"
+
+  - query: "Spring Security method-level authorization with @PreAuthorize"
+    library: "spring-security"
+    category: "auth"
+    difficulty: "medium"
+
+  - query: "How to configure CORS in Spring Security?"
+    library: "spring-security"
+    category: "configuration"
+    difficulty: "easy"
+
+  # Spring Data Redis
+  - query: "How to use ReactiveRedisTemplate for caching?"
+    library: "spring-data-redis"
+    category: "caching"
+    difficulty: "medium"
+
+  - query: "Redis pub/sub with Spring Data Redis reactive"
+    library: "spring-data-redis"
+    category: "messaging"
+    difficulty: "hard"
+
+  # jOOQ
+  - query: "How to write type-safe queries with jOOQ Kotlin DSL?"
+    library: "jooq"
+    category: "query"
+    difficulty: "medium"
+
+  - query: "jOOQ code generation configuration for PostgreSQL"
+    library: "jooq"
+    category: "configuration"
+    difficulty: "medium"
+
+  - query: "How to use jOOQ with Kotlin coroutines?"
+    library: "jooq"
+    category: "async"
+    difficulty: "hard"
+
+  # Spring WebFlux (part of spring-framework)
+  - query: "How to handle errors in WebFlux with @ControllerAdvice?"
+    library: "spring-framework"
+    category: "error-handling"
+    difficulty: "medium"
+
+  - query: "WebFlux functional routing with coRouter"
+    library: "spring-framework"
+    category: "routing"
+    difficulty: "medium"
+
+  # Kotlin Coroutines
+  - query: "How does structured concurrency work with coroutineScope?"
+    library: "kotlinx-coroutines"
+    category: "concurrency"
+    difficulty: "hard"
+
+  - query: "Difference between launch and async in Kotlin coroutines"
+    library: "kotlinx-coroutines"
+    category: "basics"
+    difficulty: "easy"
+
+  # Cross-library / Integration
+  - query: "How to configure connection pool for R2DBC PostgreSQL?"
+    library: "spring-boot"
+    category: "database"
+    difficulty: "medium"
+
+  - query: "Spring Boot test slicing with @WebFluxTest"
+    library: "spring-boot"
+    category: "testing"
+    difficulty: "easy"
+
+  - query: "How to set up Liquibase migrations for PostgreSQL?"
+    library: "liquibase"
+    category: "migration"
+    difficulty: "medium"
+
+  # Version-specific queries
+  - query: "What changed in Spring Boot 4.0 migration from 3.x?"
+    library: "spring-boot"
+    category: "migration"
+    difficulty: "hard"
+
+  - query: "Spring Security 7.0 breaking changes and migration guide"
+    library: "spring-security"
+    category: "migration"
+    difficulty: "hard"

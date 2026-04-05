@@ -47,3 +47,64 @@ sources:
         url: "https://docs.spring.io/spring-ai/reference/"
         recursive: true
         max-depth: 2
+
+  spring-security:
+    group: "org.springframework.security"
+    artifact: "spring-security-core"
+    docs:
+      reference:
+        urls:
+          - "https://docs.spring.io/spring-security/reference/{version}/"
+          - "https://docs.spring.io/spring-security/reference/"
+        recursive: true
+        max-depth: 2
+
+  spring-data-redis:
+    group: "org.springframework.data"
+    artifact: "spring-data-redis"
+    docs:
+      reference:
+        urls:
+          - "https://docs.spring.io/spring-data/redis/reference/{version}/"
+          - "https://docs.spring.io/spring-data/redis/reference/"
+        recursive: true
+        max-depth: 2
+
+  jooq:
+    group: "org.jooq"
+    artifact: "jooq"
+    docs:
+      reference:
+        url: "https://www.jooq.org/doc/latest/manual/"
+        recursive: true
+        max-depth: 2
+
+  liquibase:
+    group: "org.liquibase"
+    artifact: "liquibase-core
+    docs:
+      reference:
+        url: "https://docs.liquibase.com/change-types/home.html"
+
+  springdoc-openapi:
+    group: "org.springdoc"
+    artifact: "springdoc-openapi-starter-common"
+    docs:
+      reference:
+        url: "https://springdoc.org/"
+
+  testcontainers:
+    group: "org.testcontainers"
+    artifact: "testcontainers"
+    docs:
+      reference:
+        url: "https://java.testcontainers.org/modules/databases/postgres/"
+
+  postgresql:
+    group: "org.postgresql"
+    artifact: "postgresql"
+    docs:
+      reference:
+        url: "https://jdbc.postgresql.org/documentation/"
+        recursive: true
+        max-depth: 2

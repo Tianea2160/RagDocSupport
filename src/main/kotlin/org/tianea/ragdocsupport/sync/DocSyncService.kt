@@ -67,6 +67,18 @@ class DocSyncService(
         )
     }
 
+    fun registerBulk(libraries: List<BulkRegisterRequest>): BulkRegisterResult {
+        val results = mutableListOf<BulkRegisterEntry>()
+
+        for (request in libraries) {
+            log.info("Bulk registering ${request.library}:${request.version}")
+            val result = register(request.library, request.version, request.docUrl)
+            results.add(BulkRegisterEntry(request.library, request.version, result))
+        }
+
+        return BulkRegisterResult(results)
+    }
+
     private fun resolveUrlCandidates(
         library: String,
         dependency: Dependency,
@@ -100,4 +112,24 @@ data class RegisterResult(
 data class FailedDocType(
     val docType: DocType,
     val triedUrls: List<String>,
+)
+
+data class BulkRegisterRequest(
+    val library: String,
+    val version: String,
+    val docUrl: String? = null,
+)
+
+data class BulkRegisterResult(
+    val entries: List<BulkRegisterEntry>,
+) {
+    val totalChunks: Int get() = entries.sumOf { it.result.chunksIndexed }
+    val successCount: Int get() = entries.count { it.result.success }
+    val failureCount: Int get() = entries.count { !it.result.success }
+}
+
+data class BulkRegisterEntry(
+    val library: String,
+    val version: String,
+    val result: RegisterResult,
 )

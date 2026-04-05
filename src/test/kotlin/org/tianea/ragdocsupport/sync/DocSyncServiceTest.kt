@@ -111,6 +111,36 @@ class DocSyncServiceTest {
     }
 
     @Test
+    fun `registerBulk registers all libraries and aggregates results`() {
+        justRun { vectorStore.ensureCollection() }
+        every { vectorStore.listIndexedLibraries() } returns emptyList()
+        justRun { vectorStore.deleteByLibraryAndVersion(any(), any()) }
+        justRun { vectorStore.upsert(any()) }
+
+        every { docSourceRepository.findByLibrary("lib-a") } returns aDocSource(
+            library = "lib-a",
+            docs = mapOf(DocType.REFERENCE to DocUrlPattern("https://example.com/a/{version}")),
+        )
+        every { docSourceRepository.findByLibrary("lib-b") } returns null
+
+        every {
+            docProcessor.processRecursive("lib-a", "1.0", DocType.REFERENCE, any(), 2)
+        } returns listOf(aDocChunk(embedding = anEmbedding()), aDocChunk(embedding = anEmbedding()))
+
+        val result = service.registerBulk(
+            listOf(
+                BulkRegisterRequest("lib-a", "1.0"),
+                BulkRegisterRequest("lib-b", "2.0"),
+            ),
+        )
+
+        result.entries shouldHaveSize 2
+        result.successCount shouldBe 1
+        result.failureCount shouldBe 1
+        result.totalChunks shouldBe 2
+    }
+
+    @Test
     fun `register delegates recursive patterns to processRecursive`() {
         justRun { vectorStore.ensureCollection() }
         every { vectorStore.listIndexedLibraries() } returns emptyList()

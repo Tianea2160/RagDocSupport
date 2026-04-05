@@ -26,6 +26,7 @@ jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 webmagic-core = { module = "us.codecraft:webmagic-core", version.ref = "webmagic" }
 webmagic-extension = { module = "us.codecraft:webmagic-extension", version.ref = "webmagic" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+netty-resolver-dns-native-macos = { module = "io.netty:netty-resolver-dns-native-macos" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 

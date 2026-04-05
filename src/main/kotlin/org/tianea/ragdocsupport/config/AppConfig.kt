@@ -3,6 +3,7 @@ package org.tianea.ragdocsupport.config
 import io.qdrant.client.QdrantClient
 import io.qdrant.client.QdrantGrpcClient
 import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.boot.tomcat.TomcatConnectorCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -13,4 +14,9 @@ class AppConfig {
     fun qdrantClient(properties: QdrantProperties): QdrantClient = QdrantClient(
         QdrantGrpcClient.newBuilder(properties.host, properties.port, false).build(),
     )
+
+    @Bean
+    fun tomcatSoLingerCustomizer(): TomcatConnectorCustomizer = TomcatConnectorCustomizer { connector ->
+        connector.setProperty("socket.soLingerOn", "false")
+    }
 }

@@ -51,6 +51,13 @@ dependencies {
     // YAML parsing for doc-sources.yml
     implementation(libs.jackson.dataformat.yaml)
 
+    // Netty native DNS resolver for macOS Apple Silicon
+    runtimeOnly(libs.netty.resolver.dns.native.macos) {
+        artifact {
+            classifier = "osx-aarch_64"
+        }
+    }
+
     testFixturesImplementation(libs.kotlin.reflect)
 
     testImplementation(testFixtures(project))
@@ -73,6 +80,20 @@ kotlin {
     }
 }
 
+val benchmarkTask = tasks.register<Test>("benchmark") {
+    description = "Run RAG benchmark tests (requires Qdrant + Ollama)"
+    group = "verification"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform {
+        includeTags("benchmark")
+    }
+}
+
 tasks.withType<Test> {
-    useJUnitPlatform()
+    if (this != benchmarkTask.get()) {
+        useJUnitPlatform {
+            excludeTags("benchmark")
+        }
+    }
 }

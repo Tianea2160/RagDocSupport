@@ -56,9 +56,9 @@ docs-register 호출
 
 - **`core/model`** — 도메인 모델 (Dependency, DocChunk, DocSource). DocType enum: REFERENCE, MIGRATION, CHANGELOG, GUIDE
 - **`core/port`** — 인터페이스 (VectorStore, DocSourceRepository). 구현체 교체 용이
-- **`crawler`** — 크롤링 파이프라인. DocCrawler(단일) / DocTreeCrawler(재귀, WebMagic) → HtmlToMarkdownConverter → DocChunker. Jsoup은 HTTP 301/302만 follow, JS 리다이렉트 미지원
-- **`store`** — QdrantVectorStore: Qdrant Java 클라이언트(gRPC) 직접 사용. Spring AI VectorStore 미사용 (하이브리드 검색, payload 업데이트 등 기능 제한으로 인해)
-- **`sync`** — DocSyncService: 전체 파이프라인 오케스트레이션
+- **`crawler`** — 크롤링 파이프라인. DocCrawler(단일) / DocTreeCrawler(재귀) → HtmlToMarkdownConverter → DocChunker. DocPageProcessor/DocResultPipeline은 WebMagic 구현체 (internal). CrawlerConstants에 공유 상수. Jsoup은 HTTP 301/302만 follow, JS 리다이렉트 미지원
+- **`store`** — QdrantVectorStore(오케스트레이션) + QdrantFilterBuilder(필터 구성) + DocChunkPayloadMapper(payload 변환, 필드명 상수 정의). Spring AI VectorStore 미사용 (하이브리드 검색, payload 업데이트 등 기능 제한으로 인해)
+- **`sync`** — DocSyncService(오케스트레이션, URL 해석) + DocProcessor(크롤링→변환→청킹→임베딩 파이프라인)
 - **`mcp`** — 4개 MCP 도구 (`@McpTool` 어노테이션 기반): docs-register, docs-search, docs-compare, docs-list
 - **`config`** — Spring Bean 설정, QdrantProperties (@ConfigurationProperties)
 
@@ -70,6 +70,15 @@ docs-register 호출
 - `ValueFactory.value()` — payload 값
 - `VectorsFactory.vectors()` — 벡터 데이터
 - Filter, PointId 등 protobuf 타입은 `io.qdrant.client.grpc.Common` 패키지에 위치
+- PayloadIncludeSelector, WithPayloadSelector, ScoredPoint 등은 `io.qdrant.client.grpc.Points` 패키지에 위치
+
+## Testing
+
+JUnit 5 + kotest assertions + mockk. `java-test-fixtures` 플러그인으로 `src/testFixtures/` 사용.
+- Fixture 팩토리: `aDocChunk()`, `aDocMetadata()`, `aDocSource()` 등 — 기본 파라미터로 필요한 필드만 오버라이드
+- object 클래스(QdrantFilterBuilder, DocChunkPayloadMapper)는 mock 없이 직접 테스트
+- 서비스/MCP 도구는 mockk로 의존성 mock. `justRun { }` = void 메서드, `every { } returns` = 반환값
+- DocUrlPattern 기본값 주의: `recursive = true`, `maxDepth = 2`. 테스트 시 mock 대상 메서드(processSingle vs processRecursive) 확인 필요
 
 ## Tech Stack
 
