@@ -52,25 +52,34 @@ class DocSyncService(
             for ((docType, pattern, candidateUrls) in urlCandidates) {
                 scope.fork<Unit>(
                     Runnable {
-                        val procMsg =
-                            "Processing $library:$version ($docType) " +
-                                "with ${candidateUrls.size} candidate URL(s)"
-                        log.info(procMsg)
-                        listener.onEvent(ProgressEvent(ProgressEventType.INFO, procMsg))
-                        val chunks =
-                            if (pattern.recursive) {
-                                docProcessor.processRecursive(
-                                    library,
-                                    version,
-                                    docType,
-                                    candidateUrls,
-                                    pattern.maxDepth,
-                                    listener,
-                                )
-                            } else {
-                                docProcessor.processSingle(library, version, docType, candidateUrls, listener)
-                            }
-                        docTypeResults.add(DocTypeProcessResult(docType, candidateUrls, chunks))
+                        try {
+                            val procMsg =
+                                "Processing $library:$version ($docType) " +
+                                    "with ${candidateUrls.size} candidate URL(s)"
+                            log.info(procMsg)
+                            listener.onEvent(ProgressEvent(ProgressEventType.INFO, procMsg))
+                            val chunks =
+                                if (pattern.recursive) {
+                                    docProcessor.processRecursive(
+                                        library,
+                                        version,
+                                        docType,
+                                        candidateUrls,
+                                        pattern.maxDepth,
+                                        listener,
+                                    )
+                                } else {
+                                    docProcessor.processSingle(library, version, docType, candidateUrls, listener)
+                                }
+                            log.info("DocType $docType produced ${chunks?.size ?: 0} chunks")
+                            docTypeResults.add(DocTypeProcessResult(docType, candidateUrls, chunks))
+                        } catch (e: Exception) {
+                            log.error("Failed to process $library:$version ($docType): ${e.message}", e)
+                            listener.onEvent(
+                                ProgressEvent(ProgressEventType.ERROR, "Failed $docType: ${e.message}"),
+                            )
+                            docTypeResults.add(DocTypeProcessResult(docType, candidateUrls, null))
+                        }
                     },
                 )
             }
@@ -82,11 +91,21 @@ class DocSyncService(
 
         for (result in docTypeResults) {
             if (result.chunks == null) {
+                log.warn("No chunks produced for $library:$version (${result.docType})")
                 failedDocTypes.add(FailedDocType(result.docType, result.urls))
                 continue
             }
-            vectorStore.upsert(result.chunks)
-            totalChunks += result.chunks.size
+            try {
+                vectorStore.upsert(result.chunks)
+                totalChunks += result.chunks.size
+            } catch (e: Exception) {
+                log.error("Failed to upsert chunks for $library:$version (${result.docType}): ${e.message}", e)
+                listener.onEvent(
+                    ProgressEvent(ProgressEventType.ERROR, "Upsert failed for ${result.docType}: ${e.message}"),
+                )
+                failedDocTypes.add(FailedDocType(result.docType, result.urls))
+                continue
+            }
             listener.onEvent(
                 ProgressEvent(
                     ProgressEventType.UPSERT,

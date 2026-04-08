@@ -129,7 +129,9 @@ class DocProcessor(
     }
 
     private fun embedChunks(chunks: List<DocChunk>): List<DocChunk> {
+        log.info("Embedding ${chunks.size} chunks (model: ${embeddingModel.javaClass.simpleName})")
         val embeddings = embeddingModel.embed(chunks.map { it.text })
+        log.info("Embedding complete: ${embeddings.size} vectors, dimension=${embeddings.firstOrNull()?.size ?: 0}")
         return chunks.mapIndexed { idx, chunk -> chunk.copy(embedding = embeddings[idx]) }
     }
 }

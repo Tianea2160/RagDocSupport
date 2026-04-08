@@ -13,6 +13,7 @@ import org.tianea.ragdocsupport.sync.DocSyncService
 import org.tianea.ragdocsupport.sync.ProgressEvent
 import org.tianea.ragdocsupport.sync.ProgressListener
 import org.tianea.ragdocsupport.sync.RegisterResult
+import org.tianea.ragdocsupport.web.task.TaskLogWriter
 import org.tianea.ragdocsupport.web.task.TaskService
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -23,6 +24,7 @@ class RegisterController(
     private val syncService: DocSyncService,
     private val docSourceRepository: DocSourceRepository,
     private val taskService: TaskService,
+    private val taskLogWriter: TaskLogWriter,
 ) {
     @GetMapping("/web/register")
     fun registerPage(model: Model): String {
@@ -47,17 +49,17 @@ class RegisterController(
         trySend(emitter, closed, "taskId", task.id)
 
         val listener = ProgressListener { event ->
-            taskService.appendLog(task.id, event)
             trySend(emitter, closed, "log", renderLogLine(event))
+            taskLogWriter.submitLog(task.id, event)
         }
 
         Thread.startVirtualThread {
             try {
                 val result = syncService.register(library, version, docUrl, listener)
-                taskService.complete(task.id, result)
+                taskLogWriter.submitComplete(task.id, result)
                 trySend(emitter, closed, "complete", renderResult(result, task.id))
             } catch (e: Exception) {
-                taskService.fail(task.id, e.message ?: "Unknown error")
+                taskLogWriter.submitFail(task.id, e.message ?: "Unknown error")
                 trySend(emitter, closed, "error", renderError(e))
             } finally {
                 if (!closed.get()) emitter.complete()
@@ -102,18 +104,18 @@ class RegisterController(
         Thread.startVirtualThread {
             try {
                 val listener = ProgressListener { event ->
-                    for (taskId in taskIds) {
-                        taskService.appendLog(taskId, event)
-                    }
                     trySend(emitter, closed, "log", renderLogLine(event))
+                    for (taskId in taskIds) {
+                        taskLogWriter.submitLog(taskId, event)
+                    }
                 }
                 val result = syncService.registerBulk(requests, listener)
                 for ((index, entry) in result.entries.withIndex()) {
                     if (index < taskIds.size) {
                         if (entry.result.success) {
-                            taskService.complete(taskIds[index], entry.result)
+                            taskLogWriter.submitComplete(taskIds[index], entry.result)
                         } else {
-                            taskService.fail(taskIds[index], "No chunks indexed")
+                            taskLogWriter.submitFail(taskIds[index], "No chunks indexed")
                         }
                     }
                 }
@@ -131,7 +133,7 @@ class RegisterController(
                 trySend(emitter, closed, "complete", summary)
             } catch (e: Exception) {
                 for (taskId in taskIds) {
-                    taskService.fail(taskId, e.message ?: "Unknown error")
+                    taskLogWriter.submitFail(taskId, e.message ?: "Unknown error")
                 }
                 trySend(emitter, closed, "error", renderError(e))
             } finally {
