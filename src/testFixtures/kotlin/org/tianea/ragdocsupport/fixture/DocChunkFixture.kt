@@ -33,4 +33,4 @@ fun aDocMetadata(
     latest = latest,
 )
 
-fun anEmbedding(size: Int = 768): FloatArray = FloatArray(size) { it.toFloat() / size }
+fun anEmbedding(size: Int = 4096): FloatArray = FloatArray(size) { it.toFloat() / size }

@@ -27,7 +27,7 @@ spring:
     ollama:
       base-url: http://localhost:11434
       embedding:
-        model: nomic-embed-text
+        model: qwen3-embedding:8b
 
 server:
   port: 8080

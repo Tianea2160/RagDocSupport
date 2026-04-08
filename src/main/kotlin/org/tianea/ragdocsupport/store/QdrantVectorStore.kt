@@ -29,7 +29,7 @@ class QdrantVectorStore(
     private val log = LoggerFactory.getLogger(javaClass)
 
     companion object {
-        private const val VECTOR_SIZE = 768 // nomic-embed-text default
+        private const val VECTOR_SIZE = 4096 // qwen3-embedding:8b default
     }
 
     override fun ensureCollection() {
