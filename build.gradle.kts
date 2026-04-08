@@ -60,6 +60,9 @@ dependencies {
     implementation(libs.jackson.dataformat.yaml)
     implementation(libs.spring.boot.starter.actuator)
 
+    // Spring Boot Docker Compose Support (dev only)
+    developmentOnly(libs.spring.boot.docker.compose)
+
     // Netty native DNS resolver for macOS Apple Silicon
     runtimeOnly(libs.netty.resolver.dns.native.macos) {
         artifact {

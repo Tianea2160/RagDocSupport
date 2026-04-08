@@ -35,6 +35,7 @@ spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-
 webjars-htmx = { module = "org.webjars.npm:htmx.org", version.ref = "webjars-htmx" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
 hibernate-community-dialects = { module = "org.hibernate.orm:hibernate-community-dialects", version.ref = "hibernate-community-dialects" }
+spring-boot-docker-compose = { module = "org.springframework.boot:spring-boot-docker-compose" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
